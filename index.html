@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Encrypted P2P Chat & Call</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body.light .chat-bg {
+      background-color: #e5ddd5;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 800 800"><g fill="%23cbc5bd" fill-opacity="0.4"><path d="M0 0h800v800H0z"/><path d="M283.25 0c-55.25 0-100 44.75-100 100v100h200V100c0-55.25-44.75-100-100-100zm233.5 0c-55.25 0-100 44.75-100 100v100h200V100c0-55.25-44.75-100-100-100zM0 283.25c0-55.25 44.75-100 100-100h100v200H100c-55.25 0-100-44.75-100-100zm583.25-100c55.25 0 100 44.75 100 100v100h-200V183.25c0-55.25 44.75-100 100-100zM0 516.75c0-55.25 44.75-100 100-100h100v200H100c-55.25 0-100-44.75-100-100zm283.25 100c-55.25 0-100 44.75-100 100v100h200V616.75c0-55.25-44.75-100-100-100zm233.5 0c-55.25 0-100 44.75-100 100v100h200V616.75c0-55.25-44.75-100-100-100zm266.5-100c55.25 0 100 44.75 100 100v100h-200V516.75c0-55.25 44.75-100 100-100z"/></g></svg>');
+    }
+    body.dark .chat-bg { background-color: #0d1418; }
+    #chatBox::-webkit-scrollbar { width: 6px; }
+    #chatBox::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 3px; }
+    .message-bubble:after {
+        content: ''; position: absolute; top: 0; width: 0; height: 0; border: 10px solid transparent;
+    }
+    .sent-bubble:after { right: -10px; border-left-color: #dcf8c6; }
+    .dark .sent-bubble:after { border-left-color: #056162; }
+    .received-bubble:after { left: -10px; border-right-color: #ffffff; }
+    .dark .received-bubble:after { border-right-color: #2a3942; }
+  </style>
+</head>
+<body class="light">
+
+  <div id="app" class="h-screen w-screen flex flex-col hidden">
+    <header class="bg-gray-100 dark:bg-gray-800 p-3 text-gray-800 dark:text-gray-200 flex items-center justify-between shadow-sm z-10">
+      <h2 class="text-lg font-medium">Encrypted P2P Chat</h2>
+      <div class="flex items-center space-x-2">
+          <button onclick="initiateCall('audio')" class="px-3 py-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center space-x-2 text-sm font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+              <span>Audio Call</span>
+          </button>
+          <button onclick="initiateCall('video')" class="px-3 py-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center space-x-2 text-sm font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55a1 1 0 011.45.89V16.1a1 1 0 01-1.45.9L15 14M5 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM19 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span>Video Call</span>
+          </button>
+      </div>
+    </header>
+
+    <main id="chatBox" class="flex-grow p-4 overflow-y-auto chat-bg"></main>
+
+    <div id="progressContainer" class="px-4 pb-2 chat-bg" style="display: none;">
+        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1" id="progressLabel"></div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+          <div id="progressBar" class="bg-green-500 h-2.5 rounded-full transition-all duration-150" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-100 dark:bg-gray-800 p-2 flex items-center space-x-2">
+        <label class="flex items-center space-x-1 cursor-pointer p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600" title="Send as a view-once message or file">
+            <input type="checkbox" id="viewOnce" class="form-checkbox h-4 w-4 text-green-600 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
+            <span class="text-xs text-gray-500">View Once</span>
+        </label>
+        <input type="file" id="mediaInput" onchange="prepareFile(event)" class="hidden" />
+        <label for="mediaInput" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+        </label>
+        <textarea id="message" placeholder="Type a message" class="flex-grow p-2 bg-white dark:bg-gray-700 rounded-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+        <button onclick="sendMessage()" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+        </button>
+    </footer>
+  </div>
+
+  <div id="setup" class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div class="max-w-xl w-full bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg space-y-4">
+          <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-gray-200">Setup Secure Connection</h2>
+          <button onclick="toggleTheme()" class="absolute top-4 right-4 p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200">Toggle Theme</button>
+          <div><label class="font-bold text-gray-600 dark:text-gray-400">1. Enter a Shared Secret (Password)</label><input type="text" id="sharedKey" placeholder="Must match your peer's secret" oninput="checkStrength()" class="w-full mt-1 p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded" /><div id="strengthMeter" class="text-sm mt-1"></div></div>
+          <div class="grid md:grid-cols-2 gap-4">
+              <div class="space-y-2"><label class="font-bold text-gray-600 dark:text-gray-400">2. Start & Share Your Signal</label><button onclick="startChat()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Start New Chat</button><textarea id="signalOut" placeholder="Your signal data appears here..." class="w-full h-24 p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"></textarea><button onclick="copySignal()" class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded">Copy Signal</button></div>
+              <div class="space-y-2"><label class="font-bold text-gray-600 dark:text-gray-400">3. Paste Peer's Signal & Connect</label><textarea id="signalIn" placeholder="Paste peer's signal data here" class="w-full h-24 p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"></textarea><button onclick="connect()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Connect</button></div>
+          </div>
+          <div id="log" class="text-center text-sm text-gray-500 dark:text-gray-400"></div>
+      </div>
+  </div>
+  
+  <div id="video-container" class="fixed inset-0 bg-black bg-opacity-90 hidden z-20 flex items-center justify-center p-4"><div class="relative w-full h-full flex items-center justify-center"><video id="remoteVideo" autoplay class="h-full w-auto max-w-full rounded-lg"></video><video id="localVideo" autoplay muted class="absolute bottom-6 right-6 w-1/4 max-w-xs rounded-lg border-2 border-white shadow-lg"></video></div><div id="call-controls" class="absolute bottom-10 flex items-center space-x-4"><button id="audioBtn" onclick="toggleAudio()" class="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white">Mute</button><button id="videoBtn" onclick="toggleVideo()" class="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white">Cam Off</button><button onclick="endCall(true)" class="p-3 rounded-full bg-red-600 hover:bg-red-500 text-white">End Call</button></div></div>
+
+  <div id="incoming-call-notice" class="hidden fixed bottom-5 right-5 bg-white dark:bg-gray-800 shadow-2xl rounded-lg p-4 z-30 border dark:border-gray-600">
+      <p id="incoming-call-text" class="text-gray-800 dark:text-gray-200"></p>
+      <div class="mt-4 flex justify-end space-x-2">
+          <button id="decline-call-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Decline</button>
+          <button id="accept-call-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Accept</button>
+      </div>
+  </div>
+
+  <div id="fullscreen-viewer" onclick="hideFullscreenImage()" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4 cursor-pointer">
+      <img id="fullscreen-image" src="" class="max-w-full max-h-full">
+      <button onclick="hideFullscreenImage()" class="absolute top-5 right-5 text-white text-4xl font-bold">&times;</button>
+  </div>
+
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script>
+    let peer, aesKey, localStream;
+    let receivingFile = {}, sendingFile = {}, viewOnceBlobs = {};
+    const CHUNK_SIZE = 64 * 1024;
+    let currentCallType = null; // NEW: To track call type
+
+    // --- UTILITY & SETUP ---
+    function toggleTheme() { document.body.classList.toggle('dark'); document.body.classList.toggle('light'); }
+    function logToSetup(msg) { document.getElementById('log').textContent = msg; }
+    async function deriveKey(password) { /* ... same as before ... */ const enc = new TextEncoder();const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]);return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("p2p-chat-salt"), iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); }
+    function checkStrength() { /* ... same as before ... */ const val = document.getElementById('sharedKey').value;const meter = document.getElementById('strengthMeter');if (val.length > 15 && /[A-Z]/.test(val) && /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) {meter.textContent = '🔒 Strong Password'; meter.className = 'text-sm mt-1 text-green-500';} else if (val.length > 8) {meter.textContent = '🟡 Medium Strength'; meter.className = 'text-sm mt-1 text-yellow-500';} else {meter.textContent = '🔓 Weak Password'; meter.className = 'text-sm mt-1 text-red-500';}}
+    function startChat() { if (!document.getElementById('sharedKey').value) { logToSetup('Please enter a shared secret first.'); return; } initPeer(true); logToSetup('Signal generated. Copy and send it to your peer.'); }
+    function connect() { if (!document.getElementById('sharedKey').value) { logToSetup('Please enter a shared secret first.'); return; } if (!document.getElementById('signalIn').value) { logToSetup('Please paste the peer\'s signal first.'); return; } if (!peer) initPeer(false); try { peer.signal(JSON.parse(document.getElementById('signalIn').value)); } catch { logToSetup('⚠️ Invalid signal data'); } }
+    function copySignal() { /* ... same as before ... */ const out = document.getElementById('signalOut');if (!out.value) { logToSetup('Generate a signal first!'); return; }navigator.clipboard.writeText(out.value).then(() => logToSetup('Signal copied to clipboard.'), () => logToSetup('Failed to copy signal.')); }
+    
+    // --- UI & LOGGING ---
+    function log(content, type = 'system', msgId = '') { /* ... same as before ... */ const chatBox = document.getElementById('chatBox');const div = document.createElement('div');if (type === 'system') {div.className = 'text-center my-2';div.innerHTML = `<span class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold px-2 py-1 rounded-full">${content}</span>`;} else {const bubble = document.createElement('div');bubble.className = 'message-bubble relative max-w-md md:max-w-lg px-3 py-2 rounded-lg shadow';if (msgId) bubble.id = msgId;if (type === 'sent') {div.className = 'flex justify-end mb-2';bubble.classList.add('sent-bubble', 'bg-green-200', 'dark:bg-green-800', 'text-gray-800', 'dark:text-gray-200');} else {div.className = 'flex justify-start mb-2';bubble.classList.add('received-bubble', 'bg-white', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');}bubble.innerHTML = content;div.appendChild(bubble);}chatBox.appendChild(div);chatBox.scrollTop = chatBox.scrollHeight; }
+    
+    // --- ENCRYPTION / DECRYPTION ---
+    async function encrypt(data) { const enc = new TextEncoder();const iv = crypto.getRandomValues(new Uint8Array(12));const encryptedContent = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, enc.encode(data));const combined = new Uint8Array(iv.byteLength + encryptedContent.byteLength);combined.set(iv, 0);combined.set(new Uint8Array(encryptedContent), iv.byteLength);return combined; }
+    async function decrypt(data) { const combined = new Uint8Array(data);const iv = combined.slice(0, 12);const ciphertext = combined.slice(12);const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, ciphertext);return new TextDecoder().decode(decrypted); }
+
+    // --- P2P CORE LOGIC ---
+    function initPeer(initiator) {
+      peer = new SimplePeer({ initiator, trickle: false });
+      peer.on('signal', data => { document.getElementById('signalOut').value = JSON.stringify(data); });
+      peer.on('connect', () => { document.getElementById('setup').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); log('Connection established!'); });
+      peer.on('error', err => { console.error('Peer error:', err); log('Connection error.', 'system'); });
+      // Modified: Call endCall with false to prevent re-notifying peer on connection close
+      peer.on('close', () => { log('Connection closed.', 'system'); endCall(false); });
+      peer.on('stream', stream => { document.getElementById('remoteVideo').srcObject = stream; document.getElementById('video-container').classList.remove('hidden'); });
+
+      peer.on('data', async data => {
+        try {
+          if (!aesKey) { aesKey = await deriveKey(document.getElementById('sharedKey').value); }
+          const decrypted = await decrypt(data);
+          const message = JSON.parse(decrypted);
+
+          // --- MESSAGE HANDLER ---
+          switch (message.type) {
+              case 'text':
+                  log(message.content, 'received', message.id);
+                  break;
+              case 'view-once-text':
+                  const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceText(this, '${btoa(JSON.stringify(message.content))}')"><p class="font-bold">👁️ View-Once Message</p><p class="text-xs">Click to reveal</p></div>`;
+                  log(placeholderHTML, 'received');
+                  break;
+              case 'delete':
+                  const msgEl = document.getElementById(message.id);
+                  if (msgEl) msgEl.parentElement.remove();
+                  break;
+              case 'file-meta':
+                  receivingFile = { ...message, chunks: [], receivedSize: 0 };
+                  log(`Receiving file: <strong>${message.name}</strong> (${(message.size / 1024 / 1024).toFixed(2)} MB)`, 'received');
+                  document.getElementById('progressContainer').style.display = 'block';
+                  document.getElementById('progressLabel').textContent = `Receiving ${message.name}...`;
+                  break;
+              case 'file-chunk':
+                  handleFileChunk(message);
+                  break;
+              case 'file-ack':
+                  if (sendingFile.id === message.id) {
+                      clearTimeout(sendingFile.ackTimeout);
+                      sendingFile.lastAck = message.index;
+                      sendChunk();
+                  }
+                  break;
+              case 'call-invite':
+                  showIncomingCall(message.callType);
+                  break;
+              case 'call-accept':
+                  log('Call accepted. Starting stream...', 'system');
+                  startStream(message.callType);
+                  // Ensure video container is shown for receiver upon accept
+                  document.getElementById('video-container').classList.remove('hidden');
+                  break;
+              case 'call-decline':
+                  log('Peer declined the call.', 'system');
+                  // Hide video container if it was shown for sender
+                  document.getElementById('video-container').classList.add('hidden');
+                  break;
+              // NEW: Handle call-ended message
+              case 'call-ended':
+                  log('Peer ended the call.', 'system');
+                  endCall(false); // Do not notify peer back
+                  break;
+          }
+        } catch(e) { console.error(e); log('Failed to process message.', 'system'); }
+      });
+    }
+
+    async function sendPacket(message) { if (!peer || !peer.connected) { log('Not connected.', 'system'); return false; } if (!aesKey) { aesKey = await deriveKey(document.getElementById('sharedKey').value); } try { peer.send(await encrypt(JSON.stringify(message))); return true; } catch (err) { console.error("Send failed:", err); log(`Failed to send packet.`, 'system'); return false; } }
+    async function sendMessage() { const msgInput = document.getElementById('message');if (!msgInput.value) return;const messageContent = msgInput.value.replace(/\n/g, '<br>');const isViewOnce = document.getElementById('viewOnce').checked;const messageId = `msg-${Date.now()}`;const messageType = isViewOnce ? 'view-once-text' : 'text';if (await sendPacket({ type: messageType, content: messageContent, id: messageId })) {if (!isViewOnce) {const sentHTML = `${messageContent} <button onclick="deleteMessage('${messageId}')" class="text-xs font-bold text-red-500 hover:underline ml-2 opacity-50 hover:opacity-100">[X]</button>`;log(sentHTML, 'sent', messageId);} else {log(`<i>Sent a 'view-once' message.</i>`, 'sent');}msgInput.value = ''; msgInput.style.height = 'auto';document.getElementById('viewOnce').checked = false;} }
+
+    // --- VIEW-ONCE, DELETE & FULLSCREEN ---
+    function revealOnceText(element, encodedContent) { element.innerHTML = JSON.parse(atob(encodedContent));element.classList.remove('cursor-pointer', 'p-2', 'bg-gray-300', 'dark:bg-gray-600');element.onclick = null;setTimeout(() => element.parentElement.parentElement.remove(), 8000); }
+    
+    function revealOnceMedia(element, blobId) {
+    const blobInfo = viewOnceBlobs[blobId];
+    if (!blobInfo) return;
+    if (blobInfo.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = blobInfo.url;
+        img.className = "max-w-xs rounded-lg";
+        img.alt = "View-once Image";
+        element.innerHTML = '';
+        element.appendChild(img);
+        setTimeout(() => {
+            element.parentElement.parentElement.remove();
+            URL.revokeObjectURL(blobInfo.url);
+            delete viewOnceBlobs[blobId];
+        }, 5000);
+    } else if (blobInfo.type.startsWith('video/')) {
+        const video = document.createElement('video');
+        video.src = blobInfo.url;
+        video.controls = true;
+        video.autoplay = true;
+        video.className = "max-w-xs rounded-lg";
+        video.onended = () => {
+            element.parentElement.parentElement.remove();
+            URL.revokeObjectURL(blobInfo.url);
+            delete viewOnceBlobs[blobId];
+        };
+        element.innerHTML = '';
+        element.appendChild(video);
+    }
+    element.classList.remove('cursor-pointer', 'p-2', 'bg-gray-300', 'dark:bg-gray-600');
+    element.onclick = null;
+}
+    function showFullscreenImage(src) { document.getElementById('fullscreen-image').src = src; document.getElementById('fullscreen-viewer').classList.remove('hidden'); }
+    function hideFullscreenImage() { document.getElementById('fullscreen-viewer').classList.add('hidden'); }
+
+    // --- FILE TRANSFER ---
+    async function handleFileChunk(message) {
+      if (receivingFile.id !== message.id) return;
+      const chunk = Uint8Array.from(atob(message.chunk), c => c.charCodeAt(0));
+      receivingFile.chunks[message.index] = chunk; receivingFile.receivedSize += chunk.byteLength;
+      document.getElementById('progressBar').style.width = `${(receivingFile.receivedSize / receivingFile.size) * 100}%`;
+      await sendPacket({ type: 'file-ack', id: message.id, index: message.index });
+      if (receivingFile.receivedSize === receivingFile.size) {
+          const fileBlob = new Blob(receivingFile.chunks, {type: receivingFile.fileType});
+          if (receivingFile.isViewOnce) {
+              const blobId = `blob-${Date.now()}`;
+              viewOnceBlobs[blobId] = { url: URL.createObjectURL(fileBlob), type: receivingFile.fileType, name: receivingFile.name };
+              const mediaIcon = receivingFile.fileType.startsWith('image/') ? '🖼️' : '🎬';
+              const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceMedia(this, '${blobId}')"><p class="font-bold">${mediaIcon} View-Once Media</p><p class="text-xs">${receivingFile.name} - Click to reveal</p></div>`;
+              log(placeholderHTML, 'received');
+          } else {
+              const url = URL.createObjectURL(fileBlob);
+              let mediaHTML = '';
+              if (receivingFile.fileType.startsWith('image/')) {
+                  mediaHTML = `<img src="${url}" class="max-w-xs rounded-lg mt-2 cursor-pointer" alt="Received Image" onclick="showFullscreenImage(this.src)">`;
+              } else if (receivingFile.fileType.startsWith('video/')) {
+                  mediaHTML = `<video src="${url}" controls class="max-w-xs rounded-lg mt-2"></video>`;
+              }
+              const downloadUI = `<div class="mt-2 p-2 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-between"><div class="text-sm"><strong>${receivingFile.name}</strong></div><a href="${url}" download="${receivingFile.name}" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></a></div>`;
+              log(mediaHTML + downloadUI, 'received');
+          }
+          receivingFile = {};
+          setTimeout(() => { document.getElementById('progressContainer').style.display = 'none'; }, 2000);
+      }
+    }
+    function prepareFile(event) { /* ... same as before, but logs media for sender ... */ const file = event.target.files[0];if (!file) return;if (sendingFile.id) { log('A file transfer is already in progress.', 'system'); return; }const isViewOnce = document.getElementById('viewOnce').checked;const fileId = Date.now().toString();log(`Preparing to send: <strong>${file.name}</strong>...`, 'sent');document.getElementById('progressContainer').style.display = 'block';document.getElementById('progressLabel').textContent = `Sending ${file.name}...`;document.getElementById('progressBar').style.width = '0%';const reader = new FileReader();reader.onload = async (e) => {sendingFile = { id: fileId, name: file.name, type: file.type, size: file.size, isViewOnce, chunks: [], buffer: e.target.result, currentIndex: 0, lastAck: -1 };for (let i = 0; i < e.target.result.byteLength; i += CHUNK_SIZE) {sendingFile.chunks.push(e.target.result.slice(i, i + CHUNK_SIZE));}if(await sendPacket({ type: 'file-meta', id: fileId, name: file.name, size: file.size, fileType: file.type, isViewOnce })) {sendChunk();document.getElementById('viewOnce').checked = false;} else { log(`Could not initiate file transfer.`, 'system'); }};reader.readAsArrayBuffer(file); 
+    // Add this line to reset the input
+    event.target.value = null;
+    }
+    function sendChunk() {
+        if (!sendingFile.id || sendingFile.currentIndex > sendingFile.lastAck + 1) return;
+        if (sendingFile.currentIndex >= sendingFile.chunks.length) {
+            // NEW: Log sent media for sender
+            if (!sendingFile.isViewOnce) {
+                const fileBlob = new Blob([sendingFile.buffer], {type: sendingFile.type});
+                const url = URL.createObjectURL(fileBlob);
+                let mediaHTML = '';
+                if (sendingFile.type.startsWith('image/')) {
+                    mediaHTML = `<img src="${url}" class="max-w-xs rounded-lg mt-2 cursor-pointer" alt="Sent Image" onclick="showFullscreenImage(this.src)">`;
+                } else if (sendingFile.type.startsWith('video/')) {
+                    mediaHTML = `<video src="${url}" controls class="max-w-xs rounded-lg mt-2"></video>`;
+                }
+                log(mediaHTML, 'sent');
+            } else {
+                log(`<i>Sent a 'view-once' file.</i>`, 'sent');
+            }
+            setTimeout(() => { document.getElementById('progressContainer').style.display = 'none'; }, 2000);
+            sendingFile = {}; return;
+        }
+        const chunk = sendingFile.chunks[sendingFile.currentIndex];
+        const base64Chunk = btoa(new Uint8Array(chunk).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+        sendPacket({ type: 'file-chunk', id: sendingFile.id, index: sendingFile.currentIndex, chunk: base64Chunk }).then(sent => {
+            if (sent) {
+                sendingFile.ackTimeout = setTimeout(() => { log(`No ACK for chunk ${sendingFile.currentIndex}, retrying...`, 'system'); sendChunk(); }, 10000);
+                document.getElementById('progressBar').style.width = `${((sendingFile.currentIndex + 1) / sendingFile.chunks.length) * 100}%`;
+                if (sendingFile.currentIndex === sendingFile.lastAck + 1) sendingFile.currentIndex++;
+            } else { log(`Critical send failure for chunk ${sendingFile.currentIndex}. Aborting transfer.`, 'system'); clearTimeout(sendingFile.ackTimeout); sendingFile = {}; }
+        });
+    }
+
+    // --- NEW: CALLING LOGIC ---
+    async function initiateCall(callType) {
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        if (!peer?.connected) { log('Connect to a peer before calling.', 'system'); return; }
+        currentCallType = callType; // Store the type of call we're making
+        log(`Inviting peer to a ${callType} call...`, 'system');
+        if (await sendPacket({ type: 'call-invite', callType: callType })) {
+            // Immediately show video container and local stream for the sender
+            document.getElementById('video-container').classList.remove('hidden');
+            startStream(callType);
+        } else {
+            log('Failed to send call invite.', 'system');
+        }
+    }
+
+    function showIncomingCall(callType) {
+        const notice = document.getElementById('incoming-call-notice');
+        document.getElementById('incoming-call-text').textContent = `Peer is inviting you to a ${callType} call.`;
+        notice.classList.remove('hidden');
+        document.getElementById('decline-call-btn').onclick = () => {
+            sendPacket({ type: 'call-decline' });
+            notice.classList.add('hidden');
+            // Hide video container if it was previously shown by accidental double-click etc.
+            document.getElementById('video-container').classList.add('hidden');
+        };
+        document.getElementById('accept-call-btn').onclick = () => {
+            sendPacket({ type: 'call-accept', callType: callType });
+            startStream(callType);
+            // Add this line to show the video interface immediately
+            document.getElementById('video-container').classList.remove('hidden');
+            notice.classList.add('hidden');
+        };
+    }
+
+    async function startStream(callType) {
+      try {
+        const constraints = {
+            audio: true,
+            video: callType === 'video'
+        };
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (callType === 'audio') {
+            document.getElementById('videoBtn').classList.add('hidden');
+        } else {
+            document.getElementById('videoBtn').classList.remove('hidden');
+        }
+        document.getElementById('localVideo').srcObject = null;
+        document.getElementById('localVideo').srcObject = localStream;
+        // Check if stream is already added to prevent errors
+        if (peer && localStream) {
+            peer._pc.getSenders().forEach(sender => {
+                if (sender.track) sender.track.stop();
+            });
+            localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+        }
+      } catch (err) {
+        console.error('Media access error:', err);
+        alert("Error accessing camera/microphone. Please allow permissions and try again.");
+        log('Could not start call: camera/mic permission denied.', 'system');
+        endCall(true); // End the call and notify peer if media access fails
+      }
+    }
+
+    function endCall(shouldNotifyPeer) {
+        if (shouldNotifyPeer && peer && peer.connected) {
+            sendPacket({ type: 'call-ended' });
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null; // Clear the localStream reference
+        }
+        // Remove stream from peer connection if it was added
+        // SimplePeer v9 doesn't have peer.removeStream by default in all cases,
+        // stopping tracks is generally enough for clean up.
+        // If issues persist, consider peer.destroy() and re-initializing peer.
+        
+        document.getElementById('video-container').classList.add('hidden');
+        document.getElementById('localVideo').srcObject = null;
+        document.getElementById('remoteVideo').srcObject = null;
+        
+        log('Call ended.', 'system');
+    }
+
+    function toggleAudio() { 
+        if (localStream && localStream.getAudioTracks().length > 0) {
+            const audioTrack = localStream.getAudioTracks()[0];
+            audioTrack.enabled = !audioTrack.enabled; 
+            document.getElementById('audioBtn').textContent = audioTrack.enabled ? 'Mute' : 'Unmute'; 
+        }
+    }
+    function toggleVideo() { 
+        if (localStream && localStream.getVideoTracks().length > 0) {
+            const videoTrack = localStream.getVideoTracks()[0];
+            videoTrack.enabled = !videoTrack.enabled;
+            document.getElementById('videoBtn').textContent = videoTrack.enabled ? 'Cam Off' : 'Cam On';
+        }
+    }
+
+    // Auto-resize textarea
+    document.getElementById('message').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
+  </script>
+</body>
+</html>
