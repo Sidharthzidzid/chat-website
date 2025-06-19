@@ -710,9 +710,20 @@
 
       } catch (err) {
         console.error('Media access error:', err);
-        alert("Error accessing camera/microphone. Please allow permissions and try again.");
-        log('Could not start call: camera/mic permission denied.', 'system');
-        endCall(true); 
+        if (err.name === 'NotAllowedError') {
+          alert("Permission to access camera/mic was denied.");
+          log('Could not start call: permission denied.', 'system');
+        } else if (err.name === 'NotFoundError') {
+          alert("No camera or microphone found.");
+          log('Could not start call: no input devices found.', 'system');
+        } else if (err.name === 'NotReadableError') {
+          alert("Camera/mic is in use by another application.");
+          log('Could not start call: input device busy.', 'system');
+        } else {
+          alert("Unexpected error accessing media devices.");
+          log(`Could not start call: ${err.name}.`, 'system');
+        }
+        endCall(true);
       }
     }
 
