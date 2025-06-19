@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Encrypted P2P Chat & Call</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* Base Chat Backgrounds & General Colors */
     body.light { background-color: #f0f0f0; color: #212121; } /* Changed text color to a darker shade */
@@ -76,9 +77,118 @@
     #chatBox::-webkit-scrollbar { width: 6px; }
     #chatBox::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
     body.dark #chatBox::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); }
+  
+    /* Make video-call-container full screen overlay */
+    #video-call-container {
+        position: fixed; /* Make it an overlay */
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50; /* Ensure it's above the chat but below notification */
+        display: flex; /* Always flex, hide with 'hidden' class */
+        flex-direction: column;
+        background-color: rgba(0, 0, 0, 0.9); /* Slightly transparent dark background */
+        color: white;
+    }
+
+    #video-call-container.hidden {
+        display: none;
+    }
+
+    /* Style for the video elements to fill space */
+    #video-call-container .flex-grow { /* This targets the div containing local and remote video */
+        position: relative; /* For absolute positioning of inner videos */
+        width: 100%;
+        height: 100%;
+        display: flex; /* Use flex to align status text */
+        align-items: center;
+        justify-content: center;
+        overflow: hidden; /* Hide anything outside video boundaries */
+    }
+
+    /* Remote Video (main view) */
+    #remoteVideoContainer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1f2937; /* Dark background for empty video area */
+    }
+    #remoteVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Fill the container, cropping if necessary */
+    }
+
+    /* Local Video (small overlay) */
+    #localVideoContainer {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        width: 120px; /* Smaller size */
+        height: 90px;
+        z-index: 60; /* Above remote video */
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,0.5);
+        transform: scaleX(-1); /* Mirror local video */
+        background-color: #1f2937; /* Dark background for empty video area */
+    }
+    #localVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Fill the container */
+    }
+
+    #status {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        font-size: 1.5rem;
+        z-index: 65; /* Above videos, below local video overlay */
+    }
+
+    /* Controls container at the bottom */
+    #video-controls {
+        display: flex;
+        justify-content: center;
+        padding: 1rem;
+        background-color: rgba(0,0,0,0.6); /* Semi-transparent background for controls */
+        z-index: 70;
+    }
+
+    /* Incoming Call Notification */
+    #incoming-call-notification {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        z-index: 1000;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    #incoming-call-notification h3 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+        animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
   </style>
 </head>
-<body class="light">
+<body>
 
   <div id="app" class="h-screen w-screen flex flex-col hidden">
     <header class="p-3 flex items-center justify-between shadow-sm z-10">
@@ -89,13 +199,10 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h1M3 12H2m8.006-7.5l-.574-.574m-9.454 9.454l-.574-.574M19 12a7 7 0 11-14 0 7 7 0 0114 0zm-9.146 5.146l.574.574m9.454-9.454l-.574-.574" />
               </svg>
           </button>
-          <button onclick="initiateCall('audio')" class="px-3 py-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center space-x-2 text-sm font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-              <span>Audio Call</span>
-          </button>
-          <button onclick="initiateCall('video')" class="px-3 py-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center space-x-2 text-sm font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55a1 1 0 011.45.89V16.1a1 1 0 01-1.45.9L15 14M5 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM19 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-              <span>Video Call</span>
+          <button onclick="startOrToggleCallUI()" class="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center text-sm font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
           </button>
       </div>
     </header>
@@ -128,6 +235,30 @@
     </footer>
   </div>
 
+  <div id="video-call-container" class="hidden">
+      <div class="flex-grow relative"> <div id="remoteVideoContainer" class="bg-gray-800 flex items-center justify-center rounded-lg overflow-hidden">
+              <video id="remoteVideo" autoplay playsinline class="w-full h-full"></video>
+              <div id="status" class="absolute text-gray-400 p-4 text-center">Waiting to connect...</div>
+          </div>
+          <div id="localVideoContainer" class="rounded-lg shadow-lg">
+              <video id="localVideo" autoplay playsinline muted class="w-full h-full"></video>
+          </div>
+      </div>
+
+      <div id="video-controls" class="pt-2"> <button id="callButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-lg disabled:opacity-50 mx-2" disabled>Start Call</button>
+          <button id="hangupButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-lg disabled:opacity-50 mx-2" disabled>Hang Up</button>
+      </div>
+  </div>
+
+  <div id="incoming-call-notification" class="hidden">
+      <h3>Incoming Video Call!</h3>
+      <p class="mb-4">From your peer</p>
+      <div class="flex justify-center space-x-4">
+          <button id="acceptCallButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full text-lg">Accept</button>
+          <button id="rejectCallButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full text-lg">Reject</button>
+      </div>
+  </div>
+
   <div id="setup" class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
       <div class="max-w-xl w-full bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg space-y-4">
           <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-gray-200">Setup Secure Connection</h2>
@@ -141,16 +272,6 @@
       </div>
   </div>
   
-  <div id="video-container" class="fixed inset-0 bg-black bg-opacity-90 hidden z-20 flex items-center justify-center p-4"><div class="relative w-full h-full flex items-center justify-center"><video id="remoteVideo" autoplay class="h-full w-auto max-w-full rounded-lg"></video><video id="localVideo" autoplay muted class="absolute bottom-6 right-6 w-1/4 max-w-xs rounded-lg border-2 border-white shadow-lg"></video></div><div id="call-controls" class="absolute bottom-10 flex items-center space-x-4"><button id="audioBtn" onclick="toggleAudio()" class="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white">Mute</button><button id="videoBtn" onclick="toggleVideo()" class="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-white">Cam Off</button><button onclick="endCall(true)" class="p-3 rounded-full bg-red-600 hover:bg-red-500 text-white">End Call</button></div></div>
-
-  <div id="incoming-call-notice" class="hidden fixed bottom-5 right-5 bg-white dark:bg-gray-800 shadow-2xl rounded-lg p-4 z-30 border dark:border-gray-600">
-      <p id="incoming-call-text" class="text-gray-800 dark:text-gray-200"></p>
-      <div class="mt-4 flex justify-end space-x-2">
-          <button id="decline-call-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Decline</button>
-          <button id="accept-call-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Accept</button>
-      </div>
-  </div>
-
   <div id="fullscreen-viewer" onclick="hideFullscreenImage()" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4 cursor-pointer">
       <img id="fullscreen-image" src="" class="max-w-full max-h-full">
       <button onclick="hideFullscreenImage()" class="absolute top-5 right-5 text-white text-4xl font-bold">&times;</button>
@@ -158,18 +279,34 @@
 
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script>
-    let peer, aesKey, localStream;
+    let peer, aesKey;
     let receivingFile = {}, sendingFile = {};
     let viewOnceBlobs = {};
     let chatMessages = []; // Array to store message objects for localStorage
     const MAX_MESSAGES = 100; // Limit for messages to store in localStorage
     const CHUNK_SIZE = 64 * 1024;
-    let currentCallType = null; // To track call type
     let fileReader = null; // Reference to FileReader for cancellation
 
     // Define the themes and their names
     const themes = ['light', 'dark', 'theme-3', 'theme-4'];
     let currentThemeIndex = 0;
+
+    // WebRTC elements and variables
+    const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+    let rtcPeerConnection = null;
+    let localStream = null;
+    let incomingCallOffer = null; // To store the received offer until accepted/rejected
+    
+    // Removed startButton as its functionality is now merged
+    const callButton = document.getElementById('callButton'); // Renamed from startVideoCallButton
+    const hangupButton = document.getElementById('hangupButton');
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const statusDiv = document.getElementById('status');
+    const videoCallContainer = document.getElementById('video-call-container');
+    const incomingCallNotification = document.getElementById('incoming-call-notification');
+    const acceptCallButton = document.getElementById('acceptCallButton');
+    const rejectCallButton = document.getElementById('rejectCallButton');
 
     // --- UTILITY & SETUP ---
     function toggleTheme() {
@@ -184,6 +321,48 @@
         document.body.classList.add(newTheme);
         localStorage.setItem('theme', newTheme); // Save theme preference
     }
+
+    // Function to start a call or toggle video call UI visibility
+    async function startOrToggleCallUI() {
+        if (!peer || !peer.connected) {
+            alert("Please establish the main chat connection first.");
+            return;
+        }
+
+        // If video container is hidden, it means we want to open it and potentially start a call
+        if (videoCallContainer.classList.contains('hidden')) {
+            videoCallContainer.classList.remove('hidden');
+            // If there's no active call, attempt to start one immediately
+            if (!rtcPeerConnection) {
+                try {
+                    statusDiv.textContent = "Requesting camera access...";
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    localVideo.srcObject = localStream;
+                    statusDiv.textContent = "Camera on. Initiating call...";
+                    setupPeerConnection(true); // True indicates this peer is the initiator
+                    // Offer creation and sending happens inside setupPeerConnection's onnegotiationneeded
+                } catch (error) {
+                    console.error("Error accessing media devices.", error);
+                    alert("Could not access your camera. Please grant permissions or ensure no other app is using it.");
+                    statusDiv.textContent = "Error: Camera access denied.";
+                    videoCallContainer.classList.add('hidden'); // Hide UI if camera fails
+                    hangUp(); // Clean up any partial state
+                }
+            } else {
+                // If rtcPeerConnection exists, it means a call is active/incoming/connecting, just show UI
+                statusDiv.textContent = "Call active.";
+            }
+        } else {
+            // If video container is visible and we click again, it means we want to close/hang up
+            if (rtcPeerConnection) {
+                // If a call is active, clicking the icon again should hang up
+                hangUp();
+            }
+            videoCallContainer.classList.add('hidden');
+        }
+        updateVideoCallButtonsState();
+    }
+
 
     function logToSetup(msg) { document.getElementById('log').textContent = msg; }
     async function deriveKey(password) { const enc = new TextEncoder();const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]);return crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("p2p-chat-salt"), iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); }
@@ -237,7 +416,7 @@
             const bubble = document.createElement('div');
             div.id = msgId; // Apply ID to the outer div
 
-            bubble.className = 'message-bubble relative max-w-md md:max-w-lg px-3 py-2 rounded-lg shadow';
+            bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow';
 
             if (type === 'sent') {
                 div.className = 'flex justify-end mb-2';
@@ -290,7 +469,7 @@
                         div.id = msg.id;
 
                         const bubble = document.createElement('div');
-                        bubble.className = 'message-bubble relative max-w-md md:max-w-lg px-3 py-2 rounded-lg shadow';
+                        bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow';
 
                         if (msg.type === 'sent') {
                             div.className = 'flex justify-end mb-2';
@@ -338,10 +517,12 @@
           
           // Save shared key on successful connection
           localStorage.setItem('sharedKey', document.getElementById('sharedKey').value);
+
+          // Enable video call buttons once SimplePeer is connected
+          updateVideoCallButtonsState();
       });
-      peer.on('error', err => { console.error('Peer error:', err); log('Connection error.', 'system'); });
-      peer.on('close', () => { log('Connection closed.', 'system'); endCall(false); });
-      peer.on('stream', stream => { document.getElementById('remoteVideo').srcObject = stream; document.getElementById('video-container').classList.remove('hidden'); });
+      peer.on('error', err => { console.error('Peer error:', err); log('Connection error.', 'system'); hangUp(); }); // Hang up video call on chat error
+      peer.on('close', () => { log('Connection closed.', 'system'); hangUp(); }); // Hang up video call on chat close
 
       peer.on('data', async data => {
         try {
@@ -392,21 +573,16 @@
                       document.getElementById('cancelFileBtn').classList.add('hidden'); // Hide cancel button
                   }
                   break;
-              case 'call-invite':
-                  showIncomingCall(message.callType);
+              case 'webrtc-signal': // Handle WebRTC signals
+                  handleWebRTCSignal(message.signalData);
                   break;
-              case 'call-accept':
-                  log('Call accepted. Starting stream...', 'system');
-                  startStream(message.callType);
-                  document.getElementById('video-container').classList.remove('hidden');
-                  break;
-              case 'call-decline':
-                  log('Peer declined the call.', 'system');
-                  document.getElementById('video-container').classList.add('hidden');
+              case 'call-rejected':
+                  log('Your call was rejected by the peer.', 'system');
+                  hangUp(); // Reset local call state
                   break;
               case 'call-ended':
-                  log('Peer ended the call.', 'system');
-                  endCall(false); // Do not notify peer back
+                  log('The call was ended by the peer.', 'system');
+                  hangUp(); // Reset local call state
                   break;
           }
         } catch(e) { console.error(e); log('Failed to process message.', 'system'); }
@@ -640,118 +816,276 @@
         document.getElementById('progressLabel').textContent = '';
     }
 
+    // --- WebRTC CALLING LOGIC (merged with data channel) ---
+    function updateVideoCallButtonsState() {
+        const isPeerConnected = peer && peer.connected;
+        const inCall = !!rtcPeerConnection; // True if rtcPeerConnection exists
+        const isIncomingCall = !incomingCallNotification.classList.contains('hidden');
 
-    // --- CALLING LOGIC ---
-    async function initiateCall(callType) {
+        // Hide notification if it's not an incoming call anymore
+        if (!isIncomingCall && incomingCallNotification.style.display !== 'none') {
+            incomingCallNotification.classList.add('hidden');
+        }
+
+        // Main call button inside video container
+        // Visible if no call is in progress/incoming, and peer is connected
+        callButton.disabled = !isPeerConnected || inCall || isIncomingCall;
+        callButton.style.display = (inCall || isIncomingCall) ? 'none' : ''; // Hide if call is active or incoming
+
+        // Hangup button
+        // Visible if a call is in progress/incoming
+        hangupButton.disabled = !isPeerConnected || (!inCall && !isIncomingCall); // Enabled if call exists or is incoming AND peer is connected
+        hangupButton.style.display = (inCall || isIncomingCall) ? '' : 'none'; // Show if call is active or incoming
+
+        // Accept/Reject buttons for incoming call notification
+        if (isIncomingCall) {
+            acceptCallButton.style.display = '';
+            rejectCallButton.style.display = '';
+            acceptCallButton.disabled = !isPeerConnected;
+            rejectCallButton.disabled = !isPeerConnected;
+        } else {
+            acceptCallButton.style.display = 'none';
+            rejectCallButton.style.display = 'none';
+        }
+
+        // Update status text based on state
+        if (!isPeerConnected) {
+            statusDiv.textContent = 'Not connected to peer chat.';
+        } else if (!localStream && !inCall && !isIncomingCall) { // Added !inCall and !isIncomingCall
+            statusDiv.textContent = 'Camera Off. Ready to start call.';
+        } else if (isIncomingCall) {
+            statusDiv.textContent = 'Incoming Call...';
+        } else if (rtcPeerConnection && rtcPeerConnection.connectionState === 'new') {
+            statusDiv.textContent = 'Initiating call...';
+        } else if (rtcPeerConnection && rtcPeerConnection.connectionState === 'connecting') {
+            statusDiv.textContent = 'Connecting...';
+        } else if (rtcPeerConnection && rtcPeerConnection.connectionState === 'connected') {
+            statusDiv.textContent = 'Call Connected!';
+            statusDiv.style.display = 'none'; // Hide status once connected
+        } else if (rtcPeerConnection && ['disconnected', 'closed', 'failed'].includes(rtcPeerConnection.connectionState)) {
+             statusDiv.textContent = 'Call ended.';
+             statusDiv.style.display = 'block'; // Show status temporarily
+        } else if (localStream && !inCall && !isIncomingCall) { // Added this for when camera is on but no call
+             statusDiv.textContent = 'Camera On. Ready to start call.';
+        } else {
+            statusDiv.textContent = 'Ready to start call.'; // Fallback
+        }
+    }
+
+
+    const setupPeerConnection = (isInitiator) => {
+        rtcPeerConnection = new RTCPeerConnection(servers);
+        
+        // Add local stream tracks only if available (will be available from startOrToggleCallUI or acceptCallButton)
+        if (localStream) {
+            localStream.getTracks().forEach(track => rtcPeerConnection.addTrack(track, localStream));
+        }
+
+        rtcPeerConnection.ontrack = event => {
+            const [remoteStream] = event.streams;
+            remoteVideo.srcObject = remoteStream;
+            statusDiv.style.display = 'none'; // Hide status once video starts
+        };
+
+        rtcPeerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                sendPacket({ type: 'webrtc-signal', signalData: { type: 'candidate', candidate: event.candidate } });
+            }
+        };
+
+        rtcPeerConnection.onnegotiationneeded = async () => {
+            if (isInitiator) {
+                try {
+                    const offer = await rtcPeerConnection.createOffer();
+                    await rtcPeerConnection.setLocalDescription(offer);
+                    sendPacket({ type: 'webrtc-signal', signalData: { type: 'offer', sdp: rtcPeerConnection.localDescription } });
+                    statusDiv.textContent = "Sending call offer. Waiting for peer to accept...";
+                } catch (e) {
+                    console.error("Error creating offer:", e);
+                    statusDiv.textContent = "Error creating call offer.";
+                    hangUp();
+                }
+            }
+        };
+
+        rtcPeerConnection.onconnectionstatechange = () => {
+            console.log("RTC connection state:", rtcPeerConnection.connectionState);
+            if (rtcPeerConnection.connectionState === 'connected') {
+                statusDiv.textContent = 'Call Connected!';
+                statusDiv.style.display = 'block';
+                setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+                updateVideoCallButtonsState(); // Update buttons immediately
+            } else if (['disconnected', 'closed', 'failed'].includes(rtcPeerConnection.connectionState)) {
+                hangUp(); // Call hangUp if connection fails/closes
+            }
+        };
+        updateVideoCallButtonsState(); // Update buttons after PC setup
+    };
+
+    // New primary call button inside video container
+    callButton.onclick = async () => {
+        if (!peer || !peer.connected) {
+            alert("Please establish the main chat connection first.");
+            return;
+        }
+        if (rtcPeerConnection) {
+            log('A call is already active or being attempted.', 'system');
+            return;
+        }
+
+        try {
+            statusDiv.textContent = "Requesting camera access...";
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
+            statusDiv.textContent = "Camera on. Initiating call...";
+            setupPeerConnection(true); // True indicates this peer is the initiator
+            // Offer creation and sending happens inside onnegotiationneeded
+        } catch (error) {
+            console.error("Error accessing media devices.", error);
+            alert("Could not access your camera. Please grant permissions or ensure no other app is using it.");
+            statusDiv.textContent = "Error: Camera access denied.";
+            hangUp(); // Clean up any partial state
+        } finally {
+            updateVideoCallButtonsState();
+        }
+    };
+
+
+    acceptCallButton.onclick = async () => {
+        if (!peer || !peer.connected) {
+            alert("Please establish the main chat connection first.");
+            return;
+        }
+        if (!incomingCallOffer) {
+            console.error("No incoming offer to accept.");
+            return;
+        }
+
+        incomingCallNotification.classList.add('hidden'); // Hide notification
+        statusDiv.textContent = "Accepting call...";
+        videoCallContainer.classList.remove('hidden'); // Ensure video container is visible
+
+        try {
+            // Get local stream if not already active
+            if (!localStream) {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+                statusDiv.textContent = "Camera on. Connecting...";
+            }
+            
+            if (!rtcPeerConnection) {
+                setupPeerConnection(false); // Set up as answerer if not already
+            } else {
+                // If rtcPeerConnection exists but it was from a previous attempt (e.g. initiator failed)
+                // we should re-add tracks if they changed, or ensure it's ready.
+                // For simplicity, if PC exists, assume it's ready for remote description.
+                // If the PC was already initialized as initiator and then failed, hangUp() should have reset it.
+            }
+
+            // Ensure localStream tracks are added *after* localStream is guaranteed to exist
+            // This is handled in setupPeerConnection, but if localStream was just acquired here,
+            // we might need to add tracks manually if setupPeerConnection was called *before* localStream was ready.
+            // Best practice: always call setupPeerConnection *after* localStream is ready for a new call.
+            // The current setupPeerConnection checks for localStream and adds. This is fine.
+            
+            await rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(incomingCallOffer));
+            const answer = await rtcPeerConnection.createAnswer();
+            await rtcPeerConnection.setLocalDescription(answer);
+            sendPacket({ type: 'webrtc-signal', signalData: { type: 'answer', sdp: rtcPeerConnection.localDescription } });
+            statusDiv.textContent = "Sending call answer...";
+        } catch (e) {
+            console.error("Error accepting call:", e);
+            alert("Failed to accept call. Check camera permissions.");
+            statusDiv.textContent = "Error accepting call.";
+            hangUp(); // Clean up if acceptance fails
+        } finally {
+            incomingCallOffer = null; // Clear the stored offer
+            updateVideoCallButtonsState();
+        }
+    };
+
+    rejectCallButton.onclick = async () => {
+        if (!peer || !peer.connected) {
+            alert("Main chat connection not established.");
+            return;
+        }
+        incomingCallNotification.classList.add('hidden'); // Hide notification
+        statusDiv.textContent = "Call Rejected.";
+        sendPacket({ type: 'call-rejected' }); // Notify initiator
+        incomingCallOffer = null; // Clear stored offer
+        hangUp(); // Reset call state locally
+    };
+
+
+    async function handleWebRTCSignal(signalData) {
+        if (signalData.type === 'offer') {
+            if (rtcPeerConnection && rtcPeerConnection.connectionState !== 'closed' && rtcPeerConnection.connectionState !== 'new') {
+                console.warn("Already in a call or call setup. Ignoring new offer.");
+                // Optionally send a busy signal back
+                return;
+            }
+            
+            // Show incoming call notification
+            incomingCallOffer = signalData.sdp; // Store the offer
+            incomingCallNotification.classList.remove('hidden'); // Show notification
+            statusDiv.textContent = "Incoming Call...";
+            log('Incoming video call. Click Accept or Reject.', 'system');
+            updateVideoCallButtonsState(); // Update buttons for incoming call
+
+        } else if (signalData.type === 'answer') {
+            if (rtcPeerConnection && rtcPeerConnection.localDescription.type === 'offer') {
+                try {
+                    await rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(signalData.sdp));
+                    statusDiv.textContent = "Call established!";
+                } catch (e) {
+                    console.error("Error setting remote answer:", e);
+                    statusDiv.textContent = "Error during call setup.";
+                    hangUp();
+                }
+            } else {
+                console.warn("Received answer but not expecting one or RTCPeerConnection not initialized as initiator.", signalData);
+            }
+        } else if (signalData.type === 'candidate') {
+            if (rtcPeerConnection) {
+                try {
+                    await rtcPeerConnection.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+                } catch (e) {
+                    console.error("Error adding ICE candidate:", e);
+                }
+            } else {
+                console.warn("Received ICE candidate but RTCPeerConnection is not initialized.", signalData);
+            }
+        }
+    }
+
+    function hangUp() {
+        if (rtcPeerConnection) {
+            // Notify peer that call is ending
+            if (peer && peer.connected) {
+                sendPacket({ type: 'call-ended' });
+            }
+            rtcPeerConnection.close();
+            rtcPeerConnection = null;
+        }
+
         if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
             localStream = null;
         }
-        if (!peer?.connected) { log('Connect to a peer before calling.', 'system'); return; }
-        currentCallType = callType; 
-        log(`Inviting peer to a ${callType} call...`, 'system');
-        if (await sendPacket({ type: 'call-invite', callType: callType })) {
-            document.getElementById('video-container').classList.remove('hidden');
-            startStream(callType);
-        } else {
-            log('Failed to send call invite.', 'system');
-        }
+        
+        localVideo.srcObject = null;
+        remoteVideo.srcObject = null;
+        
+        incomingCallNotification.classList.add('hidden'); // Ensure notification is hidden
+        incomingCallOffer = null; // Clear any pending offer
+        
+        // This is the crucial line to hide the video UI and return to chat
+        videoCallContainer.classList.add('hidden'); 
+        
+        updateVideoCallButtonsState(); // Re-enable start camera, disable offer/answer
     }
 
-    function showIncomingCall(callType) {
-        const notice = document.getElementById('incoming-call-notice');
-        document.getElementById('incoming-call-text').textContent = `Peer is inviting you to a ${callType} call.`;
-        notice.classList.remove('hidden');
-        document.getElementById('decline-call-btn').onclick = () => {
-            sendPacket({ type: 'call-decline' });
-            notice.classList.add('hidden');
-            document.getElementById('video-container').classList.add('hidden');
-        };
-        document.getElementById('accept-call-btn').onclick = () => {
-            sendPacket({ type: 'call-accept', callType: callType });
-            startStream(callType);
-            document.getElementById('video-container').classList.remove('hidden');
-            notice.classList.add('hidden');
-        };
-    }
-
-    async function startStream(callType) {
-      try {
-        const constraints = {
-            audio: true,
-            video: callType === 'video'
-        };
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-        if (callType === 'audio') {
-            document.getElementById('videoBtn').classList.add('hidden');
-            document.getElementById('localVideo').muted = true;
-        } else {
-            document.getElementById('videoBtn').classList.remove('hidden');
-            document.getElementById('localVideo').muted = true; 
-        }
-
-        document.getElementById('localVideo').srcObject = localStream;
-
-        if (peer && peer.connected) {
-            peer._pc.getSenders().forEach(sender => {
-                if (sender.track) {
-                    peer._pc.removeTrack(sender);
-                }
-            });
-            localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
-        } else {
-             log('Peer not connected, cannot add stream.', 'system');
-             endCall(false); 
-             return;
-        }
-
-        document.getElementById('video-container').classList.remove('hidden');
-
-      } catch (err) {
-        console.error('Media access error:', err);
-        alert(`Unexpected error: ${err.name} - ${err.message}`);
-        log(`Could not start call: ${err.name} - ${err.message}`, 'system');
-        endCall(true);
-      }
-    }
-
-    function endCall(shouldNotifyPeer) {
-        if (shouldNotifyPeer && peer && peer.connected) {
-            sendPacket({ type: 'call-ended' });
-        }
-        if (localStream) {
-            localStream.getTracks().forEach(track => {
-                track.stop(); 
-                if (peer && peer._pc) {
-                    const sender = peer._pc.getSenders().find(s => s.track === track);
-                    if (sender) {
-                        peer.removeTrack(sender);
-                    }
-                }
-            });
-            localStream = null; 
-        }
-        document.getElementById('video-container').classList.add('hidden');
-        document.getElementById('localVideo').srcObject = null;
-        document.getElementById('remoteVideo').srcObject = null;
-        log('Call ended.', 'system');
-    }
-
-    function toggleAudio() { 
-        if (localStream && localStream.getAudioTracks().length > 0) {
-            const audioTrack = localStream.getAudioTracks()[0];
-            audioTrack.enabled = !audioTrack.enabled; 
-            document.getElementById('audioBtn').textContent = audioTrack.enabled ? 'Mute' : 'Unmute'; 
-        }
-    }
-    function toggleVideo() { 
-        if (localStream && localStream.getVideoTracks().length > 0) {
-            const videoTrack = localStream.getVideoTracks()[0];
-            videoTrack.enabled = !videoTrack.enabled;
-            document.getElementById('videoBtn').textContent = videoTrack.enabled ? 'Cam Off' : 'Cam On';
-        }
-    }
+    hangupButton.onclick = hangUp;
 
     // Auto-resize textarea
     document.getElementById('message').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
@@ -784,6 +1118,8 @@
         if (savedKey || savedSignal) {
             logToSetup('Connection details found. Enter peer\'s signal to reconnect, or click "Start New Connection".');
         }
+        // Initially disable video call buttons until peer connection is established
+        updateVideoCallButtonsState();
     });
 
   </script>
