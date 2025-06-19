@@ -696,7 +696,7 @@
         if (peer && peer.connected) {
             peer._pc.getSenders().forEach(sender => {
                 if (sender.track) {
-                    peer.removeTrack(sender.track);
+                    peer._pc.removeTrack(sender);
                 }
             });
             localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
