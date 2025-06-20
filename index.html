@@ -22,6 +22,14 @@
     body.theme-3 .chat-bg { background-color: #bbdefb; } /* Lighter blue for chat background */
     body.theme-4 .chat-bg { background-color: #c8e6c9; } /* Lighter green for chat background */
 
+    /* Custom Background (will override chat-bg for image) */
+    #chatBox.has-custom-bg {
+        background-color: transparent !important; /* Allow image to show through */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
 
     /* Header/Footer Backgrounds */
     body.light header, body.light footer { background-color: #f0f0f0; }
@@ -51,7 +59,7 @@
     .received-bubble { background-color: #ffffff; color: #212121; } /* Changed text color to a darker shade */
     .dark .received-bubble { background-color: #2a3942; color: #eee; } /* Default dark grey */
     .theme-3 .received-bubble { background-color: #e1f5fe; color: #212121; } /* Light blue for received */
-    .theme-4 .received-bubble { background-color: #f1f8e9; color: #222; } /* Light yellow-green for received */
+    body.theme-4 .received-bubble { background-color: #f1f8e9; color: #222; } /* Light yellow-green for received */
 
 
     /* Tail for Bubbles */
@@ -186,17 +194,223 @@
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
     }
+
+    /* Sticker Picker Styles */
+    #stickerPicker {
+        position: absolute;
+        bottom: 80px; /* Above the footer input */
+        right: 10px;
+        width: 300px;
+        max-height: 400px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        overflow-y: auto;
+        z-index: 20; /* Above chat but below modals */
+        display: none; /* Hidden by default */
+        flex-direction: column;
+        padding: 1rem;
+    }
+    body.dark #stickerPicker {
+        background-color: #2a3942;
+        color: #eee;
+    }
+
+    #stickerPicker .section-title {
+        font-weight: bold;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.25rem;
+    }
+    body.dark #stickerPicker .section-title {
+        border-bottom-color: #555;
+    }
+
+    #stickerPicker .sticker-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 0.5rem;
+        padding: 0.5rem 0;
+    }
+
+    #stickerPicker .sticker-item {
+        font-size: 1.8rem;
+        text-align: center;
+        cursor: pointer;
+        padding: 0.2rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        position: relative; /* For the remove button */
+    }
+    #stickerPicker .sticker-item:hover {
+        background-color: #e0e0e0;
+    }
+    body.dark #stickerPicker .sticker-item:hover {
+        background-color: #4a5962;
+    }
+
+    .sticker-item-save-btn {
+        font-size: 0.7rem;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 2px 5px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-left: 5px;
+        display: inline-block;
+    }
+    .sticker-item-save-btn:hover {
+        background-color: #45a049;
+    }
+
+    .sticker-message {
+        font-size: 2.5rem; /* Larger font size for sent/received emoji stickers */
+        text-align: center;
+        padding: 5px;
+    }
+
+    .sticker-message img {
+        max-width: 100px; /* Max size for received image stickers */
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .sticker-item img {
+        width: 40px; /* Size for image previews in picker */
+        height: 40px;
+        object-fit: contain;
+    }
+
+    .sticker-item .remove-btn {
+        position: absolute;
+        top: -5px; /* Adjust as needed */
+        right: -5px; /* Adjust as needed */
+        background-color: rgba(255, 0, 0, 0.7);
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 10;
+    }
+    .sticker-item:hover .remove-btn {
+        opacity: 1;
+    }
+
+    /* Styles for Reply feature */
+    .message-bubble {
+        position: relative; /* Needed for positioning reply button */
+    }
+    .reply-button {
+        position: absolute;
+        bottom: 4px; /* Adjust as needed */
+        right: 4px; /* Adjust as needed */
+        background-color: rgba(0, 0, 0, 0.1); /* Light background for visibility */
+        color: inherit; /* Inherit text color from parent bubble */
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 5;
+    }
+    .message-bubble:hover .reply-button {
+        opacity: 1; /* Show on hover */
+    }
+    /* Adjust for dark theme */
+    .dark .reply-button {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .reply-preview {
+        background-color: #f0f0f0;
+        border-left: 4px solid #4CAF50; /* Green border for reply */
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dark .reply-preview {
+        background-color: #333;
+        border-left-color: #4CAF50;
+    }
+    .reply-preview .content {
+        max-width: calc(100% - 30px); /* Space for cancel button */
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 0.9rem;
+        color: #555;
+    }
+    .dark .reply-preview .content {
+        color: #bbb;
+    }
+    .reply-preview .cancel-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #888;
+        padding: 0 4px;
+    }
+    .dark .reply-preview .cancel-btn {
+        color: #bbb;
+    }
+
+    .replied-message-content {
+        border-left: 3px solid #ccc; /* Light border for the quoted message */
+        padding-left: 8px;
+        margin-bottom: 4px;
+        font-size: 0.85em;
+        opacity: 0.8;
+    }
+    .dark .replied-message-content {
+        border-left-color: #666;
+    }
   </style>
 </head>
 <body>
 
   <div id="app" class="h-screen w-screen flex flex-col hidden">
     <header class="p-3 flex items-center justify-between shadow-sm z-10">
-      <h2 class="text-lg font-medium">Encrypted P2P Chat</h2>
+      <div class="flex items-center space-x-2">
+          <h2 class="text-lg font-medium">Encrypted P2P Chat</h2>
+          <span id="peerStatus" class="text-sm font-semibold text-gray-500 flex items-center">
+              <span class="h-2 w-2 bg-gray-500 rounded-full mr-1"></span>Offline
+          </span>
+      </div>
       <div class="flex items-center space-x-2">
           <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center text-sm font-medium">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h1M3 12H2m8.006-7.5l-.574-.574m-9.454 9.454l-.574-.574M19 12a7 7 0 11-14 0 7 7 0 0114 0zm-9.146 5.146l.574.574m9.454-9.454l-.574-.574" />
+              </svg>
+          </button>
+          <input type="file" id="bgImageInput" accept="image/*" class="hidden" onchange="changeChatBackground(event)" />
+          <label for="bgImageInput" class="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center text-sm font-medium cursor-pointer" title="Change chat background">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+          </label>
+          <button onclick="clearChatBackground()" class="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center text-sm font-medium" title="Clear custom background">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
           </button>
           <button onclick="startOrToggleCallUI()" class="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center justify-center text-sm font-medium">
@@ -218,20 +432,54 @@
         </div>
         <button id="cancelFileBtn" onclick="cancelFileTransfer(true)" class="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm hidden">Cancel</button>
     </div>
+    
+    <div id="stickerPicker" class="absolute hidden">
+        <div class="flex justify-end">
+            <button onclick="toggleStickerPicker()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xl font-bold">&times;</button>
+        </div>
 
-    <footer class="p-2 flex items-center space-x-2">
-        <label class="flex items-center space-x-1 cursor-pointer p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600" title="Send as a view-once message or file">
-            <input type="checkbox" id="viewOnce" class="form-checkbox h-4 w-4 text-green-600 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
-            <span class="text-xs text-gray-500">View Once</span>
-        </label>
-        <input type="file" id="mediaInput" onchange="prepareFile(event)" class="hidden" />
-        <label for="mediaInput" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-        </label>
-        <textarea id="message" placeholder="Type a message" class="flex-grow p-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
-        <button onclick="sendMessage()" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-        </button>
+        <div class="section-title mt-4">Add Custom Sticker URL</div>
+        <div class="flex items-center space-x-2 mt-2">
+            <input type="url" id="customStickerUrlInput" placeholder="Paste sticker URL (gif/webp)" class="flex-grow p-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            <button onclick="addCustomStickerUrl()" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Add</button>
+        </div>
+        <div id="customStickerUrlError" class="text-red-500 text-sm mt-1 hidden"></div>
+        <div class="flex justify-end mt-2">
+             <button onclick="clearCustomStickers()" class="text-xs text-red-500 hover:underline">Clear My Custom Stickers</button>
+        </div>
+
+        <div class="section-title mt-4">All Stickers</div>
+        <div id="allStickersGrid" class="sticker-grid"></div>
+    </div>
+
+    <footer class="p-2 flex flex-col space-y-2 relative">
+        <!-- Reply Preview Section -->
+        <div id="replyPreview" class="reply-preview hidden">
+            <div class="content flex-grow">
+                Replying to: <span id="replyContentSnippet" class="font-semibold text-gray-800 dark:text-gray-200"></span>
+            </div>
+            <button class="cancel-btn" onclick="cancelReply()">&times;</button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <label class="flex items-center space-x-1 cursor-pointer p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600" title="Send as a view-once message or file">
+                <input type="checkbox" id="viewOnce" class="form-checkbox h-4 w-4 text-green-600 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
+                <span class="text-xs text-gray-500">View Once</span>
+            </label>
+            <input type="file" id="mediaInput" onchange="prepareFile(event)" class="hidden" />
+            <label for="mediaInput" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+            </label>
+            <button onclick="toggleStickerPicker()" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+            <textarea id="message" placeholder="Type a message" class="flex-grow p-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+            <button onclick="sendMessage()" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+            </button>
+        </div>
     </footer>
   </div>
 
@@ -245,8 +493,10 @@
           </div>
       </div>
 
-      <div id="video-controls" class="pt-2"> <button id="callButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-lg disabled:opacity-50 mx-2" disabled>Start Call</button>
+      <div id="video-controls" class="pt-2"> 
+          <button id="callButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-lg disabled:opacity-50 mx-2" disabled>Start Call</button>
           <button id="hangupButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-lg disabled:opacity-50 mx-2" disabled>Hang Up</button>
+          <button id="switchCameraButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full transition-colors text-lg disabled:opacity-50 mx-2" disabled>Switch Camera</button>
       </div>
   </div>
 
@@ -281,15 +531,19 @@
   <script>
     let peer, aesKey;
     let receivingFile = {}, sendingFile = {};
+    // New variables for image sticker transfer
+    let sendingImageSticker = {};
+    let receivingImageSticker = {};
+
     let viewOnceBlobs = {};
-    let chatMessages = []; // Array to store message objects for localStorage
-    const MAX_MESSAGES = 100; // Limit for messages to store in localStorage
-    const CHUNK_SIZE = 64 * 1024;
+    let chatMessages = []; // Array to store message objects for current session
+    const MAX_MESSAGES = 100; // Limit for messages in current session
+    const CHUNK_SIZE = 64 * 1024; // 64 KB for file chunks and image sticker chunks
     let fileReader = null; // Reference to FileReader for cancellation
 
     // Define the themes and their names
     const themes = ['light', 'dark', 'theme-3', 'theme-4'];
-    let currentThemeIndex = 0;
+    let currentThemeIndex = 0; // Default to first theme (light)
 
     // WebRTC elements and variables
     const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
@@ -307,6 +561,55 @@
     const incomingCallNotification = document.getElementById('incoming-call-notification');
     const acceptCallButton = document.getElementById('acceptCallButton');
     const rejectCallButton = document.getElementById('rejectCallButton');
+    const peerStatusElement = document.getElementById('peerStatus'); // New element for peer status
+    const chatBox = document.getElementById('chatBox'); // Get chatBox element
+    const switchCameraButton = document.getElementById('switchCameraButton'); // New button for camera switch
+
+    let availableCameras = []; // To store available video input devices
+    let currentCameraIndex = 0; // Index of the currently active camera in availableCameras
+
+    // Reply feature variables
+    let currentReplyTo = null; // Stores { id: 'msg-id', contentSnippet: '...' }
+    const replyPreview = document.getElementById('replyPreview');
+    const replyContentSnippet = document.getElementById('replyContentSnippet');
+
+    // Sticker related variables
+    // Predefined stickers are now objects with type 'emoji' or 'image' (using URLs)
+    const predefinedStickers = [
+        { type: 'emoji', content: '😀' }, { type: 'emoji', content: '😂' }, { type: 'emoji', content: '👍' },
+        { type: 'emoji', content: '❤️' }, { type: 'emoji', content: '👏' }, { type: 'emoji', content: '🥳' },
+        { type: 'emoji', content: '🤔' }, { type: 'emoji', content: '🚀' }, { type: 'emoji', content: '🌟' },
+        { type: 'emoji', content: '💡' }, { type: 'emoji', content: '🎉' }, { type: 'emoji', content: '🔥' },
+        { type: 'emoji', content: '💯' }, { type: 'emoji', content: '🙏' }, { type: 'emoji', content: '🤯' },
+        // Developer-provided image stickers using URLs
+        { type: 'image', content: 'https://media.tenor.com/oWTGv7XpHY4AAAAm/sseeyall-bubu-dudu.webp' },
+        { type: 'image', content: 'https://media.tenor.com/KNiXTCA36YYAAAAm/bubu-dudu-sseeyall.webp' },
+        { type: 'image', content: 'https://media.tenor.com/BvlQdl0TAeIAAAAm/cute.webp' },
+         { type: 'image', content: 'https://media.tenor.com/90xN7I6NjecAAAAm/bubu-dudu-sseeyall.webp' },
+        { type: 'image', content: 'https://media.tenor.com/vJRHkcdlEQQAAAAm/casal-dudu.webp' },
+        { type: 'image', content: 'https://media.tenor.com/aMOxt0o16TQAAAAm/bubu-bubu-dudu.webp' },
+         { type: 'image', content: 'https://media.tenor.com/F9Q3thp6tzUAAAAm/bubu-bubu-dudu.webp' },
+        { type: 'image', content: 'https://media.tenor.com/HOLG_hTN8WsAAAAm/bubu-jumping-on-dudu-happy.webp' },
+        { type: 'image', content: 'https://media.tenor.com/I_rw0vcOXJYAAAAm/dudu-bubu-cute-kiss.webp' },
+         { type: 'image', content: 'https://media.tenor.com/hoblaIrKqRgAAAAm/bubu-dudu.webp' },
+        { type: 'image', content: 'https://media.tenor.com/tW4jk2HaN3YAAAAm/bubu-dudu.webp' },
+        { type: 'image', content: 'https://media.tenor.com/uRyi-tc_AdAAAAAm/bubu-dudu.webp' },
+         { type: 'image', content: 'https://media.tenor.com/PXKZhCEfEfsAAAAm/bubu-bubu-dudu.webp' },
+        { type: 'image', content: 'https://media.tenor.com/qZTZ0zYcB9YAAAAm/bubu-dudu-sseeyall.webp' },
+        { type: 'image', content: 'https://media.tenor.com/BKP6erkQWjMAAAAm/bubu-dudu-sseeyall.webp' },
+        // Add more image sticker objects with their URLs here
+    ];
+    
+    // userCustomStickers array, loaded from localStorage. This also acts as the "recently used" list for custom stickers.
+    let userCustomStickers = [];
+    const MAX_RECENT_STICKERS = 6;
+    const CUSTOM_STICKERS_STORAGE_KEY = 'customStickers';
+
+    const stickerPicker = document.getElementById('stickerPicker');
+    const allStickersGrid = document.getElementById('allStickersGrid'); // Consolidated grid
+    const customStickerUrlInput = document.getElementById('customStickerUrlInput');
+    const customStickerUrlError = document.getElementById('customStickerUrlError');
+
 
     // --- UTILITY & SETUP ---
     function toggleTheme() {
@@ -319,8 +622,36 @@
 
         // Apply the new theme
         document.body.classList.add(newTheme);
-        localStorage.setItem('theme', newTheme); // Save theme preference
+        // localStorage.setItem('theme', newTheme); // Save theme preference
     }
+
+    function applyChatBackground(dataURL) {
+        if (dataURL) {
+            chatBox.style.backgroundImage = `url('${dataURL}')`;
+            chatBox.classList.add('has-custom-bg');
+            localStorage.setItem('chatBackground', dataURL); // Store in browser data
+        } else {
+            clearChatBackground();
+        }
+    }
+
+    function changeChatBackground(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            applyChatBackground(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearChatBackground() {
+        chatBox.style.backgroundImage = '';
+        chatBox.classList.remove('has-custom-bg');
+        localStorage.removeItem('chatBackground'); // Remove from browser data
+    }
+
 
     // Function to start a call or toggle video call UI visibility
     async function startOrToggleCallUI() {
@@ -336,7 +667,8 @@
             if (!rtcPeerConnection) {
                 try {
                     statusDiv.textContent = "Requesting camera access...";
-                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    // Pass the current selected camera ID
+                    await getLocalMediaStream(availableCameras[currentCameraIndex]?.deviceId);
                     localVideo.srcObject = localStream;
                     statusDiv.textContent = "Camera on. Initiating call...";
                     setupPeerConnection(true); // True indicates this peer is the initiator
@@ -372,14 +704,29 @@
         initPeer(true); 
         logToSetup('Signal generated. Copy and send it to your peer.'); 
     }
-    function connect() { 
-        if (!document.getElementById('sharedKey').value) { logToSetup('Please enter a shared secret first.'); return; } 
-        if (!document.getElementById('signalIn').value) { logToSetup('Please paste the peer\'s signal first.'); return; } 
+    async function connect() { 
+        const sharedKeyInput = document.getElementById('sharedKey');
+        const signalInInput = document.getElementById('signalIn');
+
+        if (!sharedKeyInput.value) { logToSetup('Please enter a shared secret first.'); return; } 
+        if (!signalInInput.value) { logToSetup('Please paste the peer\'s signal first.'); return; } 
+        
         if (!peer) initPeer(false); 
+        
         try { 
-            peer.signal(JSON.parse(document.getElementById('signalIn').value)); 
-        } catch { 
-            logToSetup('⚠️ Invalid signal data'); 
+            const peerSignalData = JSON.parse(signalInInput.value);
+            peer.signal(peerSignalData); 
+            // Removed: localStorage.setItem('peerSignal', signalInInput.value); 
+            // Also derive key here if it hasn't been derived yet on auto-load
+            if (!aesKey) {
+                aesKey = await deriveKey(sharedKeyInput.value);
+            }
+            logToSetup('Connecting to peer...');
+            updatePeerStatus('Connecting...', false);
+        } catch (e) { 
+            logToSetup('⚠️ Invalid signal data or connection error. Please ensure the signal is correct.'); 
+            console.error("Signal error during manual connect:", e);
+            updatePeerStatus('Offline', false);
         } 
     }
     function copySignal() { 
@@ -389,34 +736,58 @@
     }
 
     function newConnection() {
-        localStorage.removeItem('sharedKey');
-        localStorage.removeItem('localSignal');
-        localStorage.removeItem('chatMessages'); // Clear chat history for new connection
-        window.location.reload(); // Reload the page to reset everything
+        // Removed: localStorage.removeItem('sharedKey');
+        // Removed: localStorage.removeItem('localSignal');
+        // Removed: localStorage.removeItem('peerSignal'); // Clear peer signal as well
+        // Removed: localStorage.removeItem('chatMessages'); 
+        if (peer) {
+            peer.destroy(); // Properly destroy the peer connection
+            peer = null;
+        }
+        if (rtcPeerConnection) {
+            hangUp(); // Ensure video call is terminated
+        }
+        updatePeerStatus('Offline', false); // Reset status
+        window.location.reload(); 
     }
     
     // --- UI & LOGGING ---
-    function log(content, type = 'system', msgId = '') {
+    function log(content, type = 'system', msgId = '', replyTo = null) {
         const chatBox = document.getElementById('chatBox');
         const div = document.createElement('div');
 
-        // Store message object for localStorage
-        const messageObject = { content, type, id: msgId, timestamp: Date.now() };
+        // Store message object in chatMessages array for retrieval during replies
+        // Only store messages that are visible (not view-once after revealing)
+        if (type === 'text' || type === 'sticker') { // Only store for reply if it's persistent text or sticker
+            chatMessages.push({ id: msgId, content: content, type: type });
+            if (chatMessages.length > MAX_MESSAGES) {
+                chatMessages.shift(); // Remove oldest message if over limit
+            }
+        }
         
         if (type === 'system') {
             div.className = 'text-center my-2';
             div.innerHTML = `<span class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold px-2 py-1 rounded-full">${content}</span>`;
-            // System messages are not saved in chat history for simplicity,
-            // but you could add them if desired.
-            if (msgId && !content.includes('Receiving file:') && !content.includes('Preparing to send:')) { // Only save system messages related to file transfer start for re-render
-                // For simplicity, we don't re-render progress updates or call logs from history.
-                // We save meta, but actual logging happens in real-time.
-            }
         } else {
             const bubble = document.createElement('div');
             div.id = msgId; // Apply ID to the outer div
 
-            bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow';
+            // Wrap the content if it's a reply
+            let messageContentHtml = content;
+            if (replyTo) {
+                // Sanitize replyTo.contentSnippet to prevent HTML injection if it's from user input
+                const sanitizedSnippet = replyTo.contentSnippet.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                messageContentHtml = `
+                    <div class="replied-message-content" onclick="scrollToMessage('${replyTo.id}')">
+                        <p class="text-gray-600 dark:text-gray-400">Replied to:</p>
+                        <p class="font-normal text-sm">${sanitizedSnippet}</p>
+                    </div>
+                    ${content}
+                `;
+            }
+
+
+            bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow group'; // Added group for hover effect on reply button
 
             if (type === 'sent') {
                 div.className = 'flex justify-end mb-2';
@@ -425,77 +796,43 @@
                 div.className = 'flex justify-start mb-2';
                 bubble.classList.add('received-bubble');
             }
-            bubble.innerHTML = content;
+            bubble.innerHTML = messageContentHtml;
             div.appendChild(bubble);
 
-            // Add to chatMessages array only for 'sent' and 'received' messages
-            // Don't save HTML for 'view-once' as it's dynamic
+            // Add reply button for non-system, non-view-once messages
             if (type !== 'view-once-text' && !content.includes('View-Once Media')) {
-                chatMessages.push(messageObject);
+                const replyButton = document.createElement('button');
+                replyButton.className = 'reply-button hidden group-hover:block'; // Hidden by default, shown on group hover
+                replyButton.innerHTML = '&#x21A9;'; // Unicode for reply icon
+                replyButton.title = 'Reply';
+                // Store actual content (or meaningful snippet) for reply
+                const snippet = (typeof content === 'string') ? content.replace(/<br>/g, ' ').substring(0, 50) + (content.length > 50 ? '...' : '') : 'Sticker/Media';
+                replyButton.onclick = () => prepareReply(msgId, snippet);
+                bubble.appendChild(replyButton);
             }
         }
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
-        
-        // Save messages to localStorage
-        saveMessages();
     }
 
-    function saveMessages() {
-        // Keep only the latest MAX_MESSAGES
-        if (chatMessages.length > MAX_MESSAGES) {
-            chatMessages = chatMessages.slice(-MAX_MESSAGES);
-        }
-        try {
-            localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-        } catch (e) {
-            console.error("Failed to save messages to localStorage:", e);
-            // Optionally, inform the user if storage is full
-        }
-    }
-
-    function loadMessages() {
-        try {
-            const storedMessages = localStorage.getItem('chatMessages');
-            if (storedMessages) {
-                chatMessages = JSON.parse(storedMessages);
-                const chatBox = document.getElementById('chatBox');
-                chatBox.innerHTML = ''; // Clear existing messages before loading
-                chatMessages.forEach(msg => {
-                    // Re-render only persistent messages (text, sent files)
-                    if (msg.type === 'sent' || msg.type === 'received') {
-                        // Reconstruct the message HTML based on its type
-                        const div = document.createElement('div');
-                        div.id = msg.id;
-
-                        const bubble = document.createElement('div');
-                        bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow';
-
-                        if (msg.type === 'sent') {
-                            div.className = 'flex justify-end mb-2';
-                            bubble.classList.add('sent-bubble');
-                            bubble.innerHTML = `${msg.content} <button onclick="deleteMessage('${msg.id}')" class="text-xs font-bold text-red-500 hover:underline ml-2 opacity-50 hover:opacity-100">[X]</button>`;
-                        } else { // type === 'received'
-                            div.className = 'flex justify-start mb-2';
-                            bubble.classList.add('received-bubble');
-                            bubble.innerHTML = msg.content;
-                        }
-                        div.appendChild(bubble);
-                        chatBox.appendChild(div);
-                    } else if (msg.type === 'system' && msg.content.includes('Receiving file:') && msg.id) {
-                        // For file transfer start messages, just log them as system
-                        // This helps indicate that a transfer happened, but doesn't re-show progress bars.
-                        log(msg.content, 'system', msg.id);
-                    }
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        } catch (e) {
-            console.error("Failed to load messages from localStorage:", e);
-            chatMessages = []; // Reset if corrupted
+    // Function to scroll to a replied message
+    function scrollToMessage(messageId) {
+        const messageElement = document.getElementById(messageId);
+        if (messageElement) {
+            messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Optional: Highlight the message temporarily
+            messageElement.style.transition = 'background-color 0.5s ease-in-out';
+            const originalBg = messageElement.querySelector('.message-bubble').style.backgroundColor;
+            messageElement.querySelector('.message-bubble').style.backgroundColor = 'yellow';
+            setTimeout(() => {
+                messageElement.querySelector('.message-bubble').style.backgroundColor = originalBg;
+            }, 1500);
+        } else {
+            log('Original message not found (may have been cleared or deleted).', 'system');
         }
     }
-    
+
+
     // --- ENCRYPTION / DECRYPTION ---
     async function encrypt(data) { const enc = new TextEncoder();const iv = crypto.getRandomValues(new Uint8Array(12));const encryptedContent = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, enc.encode(data));const combined = new Uint8Array(iv.byteLength + encryptedContent.byteLength);combined.set(iv, 0);combined.set(new Uint8Array(encryptedContent), iv.byteLength);return combined; }
     async function decrypt(data) { const combined = new Uint8Array(data);const iv = combined.slice(0, 12);const ciphertext = combined.slice(12);const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, ciphertext);return new TextDecoder().decode(decrypted); }
@@ -503,27 +840,36 @@
     // --- P2P CORE LOGIC ---
     function initPeer(initiator) {
       peer = new SimplePeer({ initiator, trickle: false });
+      updatePeerStatus('Connecting...', false); // Set status to connecting when peer initialized
+
       peer.on('signal', data => { 
           document.getElementById('signalOut').value = JSON.stringify(data); 
-          if (initiator) { // Save local signal only if we are the initiator
-            localStorage.setItem('localSignal', JSON.stringify(data));
-          }
+          // Removed: if (initiator) { localStorage.setItem('localSignal', JSON.stringify(data)); }
       });
       peer.on('connect', () => { 
           document.getElementById('setup').classList.add('hidden'); 
           document.getElementById('app').classList.remove('hidden'); 
           log('Connection established!'); 
-          loadMessages(); // Load messages when connection is established and app is visible
-          
-          // Save shared key on successful connection
-          localStorage.setItem('sharedKey', document.getElementById('sharedKey').value);
-
-          // Enable video call buttons once SimplePeer is connected
+          // Removed: loadMessages(); 
+          // Removed: localStorage.setItem('sharedKey', document.getElementById('sharedKey').value);
+          updatePeerStatus('Online', true); // Update status to Online
           updateVideoCallButtonsState();
       });
-      peer.on('error', err => { console.error('Peer error:', err); log('Connection error.', 'system'); hangUp(); }); // Hang up video call on chat error
-      peer.on('close', () => { log('Connection closed.', 'system'); hangUp(); }); // Hang up video call on chat close
-
+      peer.on('error', err => { 
+          console.error('Peer error:', err); 
+          log('Connection error. Trying to reconnect...', 'system'); 
+          updatePeerStatus('Offline', false); // Update status to Offline
+          hangUp(); 
+          cancelFileTransfer(false); // Also cancel any ongoing file transfers
+          cancelImageStickerTransfer(false); // Cancel any ongoing sticker transfers
+      }); 
+      peer.on('close', () => { 
+          log('Connection closed. Trying to reconnect...', 'system'); 
+          updatePeerStatus('Offline', false); // Update status to Offline
+          hangUp();
+          cancelFileTransfer(false); // Also cancel any ongoing file transfers
+          cancelImageStickerTransfer(false); // Cancel any ongoing sticker transfers
+      });
       peer.on('data', async data => {
         try {
           if (!aesKey) { aesKey = await deriveKey(document.getElementById('sharedKey').value); }
@@ -533,7 +879,7 @@
           // --- MESSAGE HANDLER ---
           switch (message.type) {
               case 'text':
-                  log(message.content, 'received', message.id);
+                  log(message.content, 'received', message.id, message.replyTo); // Pass replyTo
                   break;
               case 'view-once-text':
                   const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceText(this, '${btoa(JSON.stringify(message.content))}')"><p class="font-bold">👁️ View-Once Message</p><p class="text-xs">Click to reveal</p></div>`;
@@ -543,9 +889,8 @@
                   const msgEl = document.getElementById(message.id);
                   if (msgEl) {
                       msgEl.remove(); // Direct removal
-                      // Also remove from chatMessages array
+                      // Also remove from chatMessages array if it was stored
                       chatMessages = chatMessages.filter(msg => msg.id !== message.id);
-                      saveMessages();
                   }
                   break;
               case 'file-meta':
@@ -584,6 +929,60 @@
                   log('The call was ended by the peer.', 'system');
                   hangUp(); // Reset local call state
                   break;
+              case 'sticker':
+                  let stickerHtmlContent;
+                  const receivedSticker = message.content;
+                  let saveButtonHtml = '';
+
+                  if (receivedSticker.type === 'emoji') {
+                      stickerHtmlContent = `<span class="sticker-message">${receivedSticker.content}</span>`;
+                  } else if (receivedSticker.type === 'image') {
+                      stickerHtmlContent = `<span class="sticker-message"><img src="${receivedSticker.content}" alt="Sticker"></span>`;
+                      
+                      // Check if this image sticker is already in the user's custom stickers
+                      const isAlreadySaved = userCustomStickers.some(s => areStickersEqual(s, receivedSticker));
+
+                      if (!isAlreadySaved) {
+                          // If not saved, provide an option to save it
+                          // Encode the sticker object to pass it safely through HTML attribute
+                          const encodedSticker = btoa(JSON.stringify(receivedSticker));
+                          saveButtonHtml = `<button class="save-sticker-btn text-xs px-2 py-1 bg-blue-500 text-white rounded-full mt-2 hover:bg-blue-600" onclick="saveReceivedSticker(this, '${encodedSticker}')">Save Sticker</button>`;
+                      }
+                  }
+                  
+                  // Combine sticker content and optional save button
+                  const fullMessageContent = stickerHtmlContent + (saveButtonHtml ? `<div class="text-right">${saveButtonHtml}</div>` : '');
+                  
+                  log(fullMessageContent, 'received', message.id, message.replyTo); // Pass replyTo
+                  // Always add the sticker to custom stickers for "recency" even if it's predefined.
+                  // This also ensures it's persisted if it's a new custom image.
+                  addCustomSticker(receivedSticker);
+                  break;
+              case 'image-sticker-meta':
+                  receivingImageSticker = { ...message, parts: [], receivedSize: 0 };
+                  log(`Receiving image sticker.`, 'system');
+                  document.getElementById('progressContainer').style.display = 'flex';
+                  document.getElementById('cancelFileBtn').classList.remove('hidden');
+                  document.getElementById('progressLabel').textContent = `Receiving sticker...`;
+                  break;
+              case 'image-sticker-chunk':
+                  handleImageStickerChunk(message);
+                  break;
+              case 'image-sticker-ack':
+                  if (sendingImageSticker.id === message.id) {
+                      clearTimeout(sendingImageSticker.ackTimeout);
+                      sendingImageSticker.lastAck = message.index;
+                      sendImageStickerChunk();
+                  }
+                  break;
+              case 'image-sticker-cancel':
+                  if (receivingImageSticker.id === message.id) {
+                      log(`Image sticker transfer cancelled by peer.`, 'system');
+                      receivingImageSticker = {};
+                      document.getElementById('progressContainer').style.display = 'none';
+                      document.getElementById('cancelFileBtn').classList.add('hidden');
+                  }
+                  break;
           }
         } catch(e) { console.error(e); log('Failed to process message.', 'system'); }
       });
@@ -610,16 +1009,28 @@
         const messageId = `msg-${Date.now()}`;
         const messageType = isViewOnce ? 'view-once-text' : 'text';
 
-        if (await sendPacket({ type: messageType, content: messageContent, id: messageId })) {
+        const messageToSend = {
+            type: messageType,
+            content: messageContent,
+            id: messageId
+        };
+
+        if (currentReplyTo) {
+            messageToSend.replyTo = { ...currentReplyTo }; // Include reply info
+        }
+
+        if (await sendPacket(messageToSend)) {
             if (!isViewOnce) {
+                // If message is text, allow deletion and include reply info
                 const sentHTML = `${messageContent} <button onclick="deleteMessage('${messageId}')" class="text-xs font-bold text-red-500 hover:underline ml-2 opacity-50 hover:opacity-100">[X]</button>`;
-                log(sentHTML, 'sent', messageId);
+                log(sentHTML, 'sent', messageId, currentReplyTo); // Pass replyTo
             } else {
                 log(`<i>Sent a 'view-once' message.</i>`, 'sent', messageId); 
             }
             msgInput.value = ''; 
             msgInput.style.height = 'auto';
             document.getElementById('viewOnce').checked = false;
+            cancelReply(); // Clear reply context after sending
         } 
     }
 
@@ -670,7 +1081,6 @@
     async function deleteMessage(messageId) {
         // Find and remove from chatMessages array first
         chatMessages = chatMessages.filter(msg => msg.id !== messageId);
-        saveMessages();
 
         if (await sendPacket({ type: 'delete', id: messageId })) {
             const msgElementToRemove = document.getElementById(messageId);
@@ -717,7 +1127,7 @@
     function prepareFile(event) { 
         const file = event.target.files[0];
         if (!file) return;
-        if (sendingFile.id) { log('A file transfer is already in progress.', 'system'); return; }
+        if (sendingFile.id || sendingImageSticker.id) { log('A transfer is already in progress.', 'system'); return; } // Check both file and sticker transfers
         
         const isViewOnce = document.getElementById('viewOnce').checked;
         const fileId = `file-${Date.now()}`;
@@ -781,11 +1191,11 @@
         const base64Chunk = btoa(new Uint8Array(chunk).reduce((data, byte) => data + String.fromCharCode(byte), ''));
         sendPacket({ type: 'file-chunk', id: sendingFile.id, index: sendingFile.currentIndex, chunk: base64Chunk }).then(sent => {
             if (sent) {
-                sendingFile.ackTimeout = setTimeout(() => { log(`No ACK for chunk ${sendingFile.currentIndex}, retrying...`, 'system'); sendChunk(); }, 10000);
+                sendingFile.ackTimeout = setTimeout(() => { log(`No ACK for file chunk ${sendingFile.currentIndex}, retrying...`, 'system'); sendChunk(); }, 10000);
                 document.getElementById('progressBar').style.width = `${((sendingFile.currentIndex + 1) / sendingFile.chunks.length) * 100}%`;
                 if (sendingFile.currentIndex === sendingFile.lastAck + 1) sendingFile.currentIndex++;
             } else { 
-                log(`Critical send failure for chunk ${sendingFile.currentIndex}. Aborting transfer.`, 'system'); 
+                log(`Critical send failure for file chunk ${sendingFile.currentIndex}. Aborting transfer.`, 'system'); 
                 clearTimeout(sendingFile.ackTimeout); 
                 cancelFileTransfer(false); 
             }
@@ -817,10 +1227,66 @@
     }
 
     // --- WebRTC CALLING LOGIC (merged with data channel) ---
+
+    // Function to get media stream with specific deviceId (or default if null)
+    async function getLocalMediaStream(deviceId = null) {
+        if (localStream) { // Stop existing tracks if any
+            localStream.getTracks().forEach(track => track.stop());
+        }
+
+        const constraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : true,
+            audio: true
+        };
+
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            localVideo.srcObject = localStream;
+
+            // If a peer connection is active, replace the tracks
+            if (rtcPeerConnection) {
+                // Get current senders for video and audio
+                const videoSender = rtcPeerConnection.getSenders().find(sender => sender.track.kind === 'video');
+                const audioSender = rtcPeerConnection.getSenders().find(sender => sender.track.kind === 'audio');
+
+                // Replace video track
+                if (videoSender && localStream.getVideoTracks().length > 0) {
+                    await videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+                } else if (localStream.getVideoTracks().length > 0) {
+                    // If no video sender existed but we now have a video track, add it
+                    rtcPeerConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+                }
+
+                // Replace audio track
+                if (audioSender && localStream.getAudioTracks().length > 0) {
+                    await audioSender.replaceTrack(localStream.getAudioTracks()[0]);
+                } else if (localStream.getAudioTracks().length > 0) {
+                    // If no audio sender existed but we now have an audio track, add it
+                    rtcPeerConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+                }
+            }
+            return true;
+        } catch (error) {
+            console.error("Error accessing media devices:", error);
+            alert("Could not access your camera. Please grant permissions or ensure no other app is using it.");
+            statusDiv.textContent = "Error: Camera access denied.";
+            localStream = null; // Reset localStream on error
+            if (rtcPeerConnection) {
+                hangUp(); // End call if camera fails during active call/switch
+            }
+            return false;
+        } finally {
+             updateVideoCallButtonsState(); // Update button states based on new stream status
+        }
+    }
+
+
     function updateVideoCallButtonsState() {
         const isPeerConnected = peer && peer.connected;
         const inCall = !!rtcPeerConnection; // True if rtcPeerConnection exists
         const isIncomingCall = !incomingCallNotification.classList.contains('hidden');
+        const hasMultipleCameras = availableCameras.length > 1;
+
 
         // Hide notification if it's not an incoming call anymore
         if (!isIncomingCall && incomingCallNotification.style.display !== 'none') {
@@ -836,6 +1302,11 @@
         // Visible if a call is in progress/incoming
         hangupButton.disabled = !isPeerConnected || (!inCall && !isIncomingCall); // Enabled if call exists or is incoming AND peer is connected
         hangupButton.style.display = (inCall || isIncomingCall) ? '' : 'none'; // Show if call is active or incoming
+
+        // Switch Camera button
+        switchCameraButton.disabled = !localStream || !hasMultipleCameras; // Enabled only if a local stream is active and multiple cameras exist
+        switchCameraButton.style.display = (localStream && hasMultipleCameras) ? '' : 'none'; // Show only if local stream is active and multiple cameras are found
+
 
         // Accept/Reject buttons for incoming call notification
         if (isIncomingCall) {
@@ -860,17 +1331,17 @@
         } else if (rtcPeerConnection && rtcPeerConnection.connectionState === 'connecting') {
             statusDiv.textContent = 'Connecting...';
         } else if (rtcPeerConnection && rtcPeerConnection.connectionState === 'connected') {
-            statusDiv.textContent = 'Call Connected!';
-            statusDiv.style.display = 'none'; // Hide status once connected
-        } else if (rtcPeerConnection && ['disconnected', 'closed', 'failed'].includes(rtcPeerConnection.connectionState)) {
-             statusDiv.textContent = 'Call ended.';
-             statusDiv.style.display = 'block'; // Show status temporarily
-        } else if (localStream && !inCall && !isIncomingCall) { // Added this for when camera is on but no call
-             statusDiv.textContent = 'Camera On. Ready to start call.';
-        } else {
-            statusDiv.textContent = 'Ready to start call.'; // Fallback
+                statusDiv.textContent = 'Call Connected!';
+                statusDiv.style.display = 'block';
+                setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+                updateVideoCallButtonsState(); // Update buttons immediately
+            } else if (rtcPeerConnection && ['disconnected', 'closed', 'failed'].includes(rtcPeerConnection.connectionState)) {
+                 statusDiv.textContent = 'Call ended.';
+                 statusDiv.style.display = 'block'; // Show status temporarily
+            } else {
+                statusDiv.textContent = 'Ready to start call.'; // Fallback
+            }
         }
-    }
 
 
     const setupPeerConnection = (isInitiator) => {
@@ -935,8 +1406,8 @@
 
         try {
             statusDiv.textContent = "Requesting camera access...";
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localVideo.srcObject = localStream;
+            // Use current camera device ID when initiating call
+            await getLocalMediaStream(availableCameras[currentCameraIndex]?.deviceId);
             statusDiv.textContent = "Camera on. Initiating call...";
             setupPeerConnection(true); // True indicates this peer is the initiator
             // Offer creation and sending happens inside onnegotiationneeded
@@ -966,27 +1437,15 @@
         videoCallContainer.classList.remove('hidden'); // Ensure video container is visible
 
         try {
-            // Get local stream if not already active
+            // Get local stream if not already active, using current camera device ID
             if (!localStream) {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                localVideo.srcObject = localStream;
+                await getLocalMediaStream(availableCameras[currentCameraIndex]?.deviceId);
                 statusDiv.textContent = "Camera on. Connecting...";
             }
             
             if (!rtcPeerConnection) {
                 setupPeerConnection(false); // Set up as answerer if not already
-            } else {
-                // If rtcPeerConnection exists but it was from a previous attempt (e.g. initiator failed)
-                // we should re-add tracks if they changed, or ensure it's ready.
-                // For simplicity, if PC exists, assume it's ready for remote description.
-                // If the PC was already initialized as initiator and then failed, hangUp() should have reset it.
-            }
-
-            // Ensure localStream tracks are added *after* localStream is guaranteed to exist
-            // This is handled in setupPeerConnection, but if localStream was just acquired here,
-            // we might need to add tracks manually if setupPeerConnection was called *before* localStream was ready.
-            // Best practice: always call setupPeerConnection *after* localStream is ready for a new call.
-            // The current setupPeerConnection checks for localStream and adds. This is fine.
+            } 
             
             await rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(incomingCallOffer));
             const answer = await rtcPeerConnection.createAnswer();
@@ -1014,6 +1473,24 @@
         sendPacket({ type: 'call-rejected' }); // Notify initiator
         incomingCallOffer = null; // Clear stored offer
         hangUp(); // Reset call state locally
+    };
+
+    switchCameraButton.onclick = async () => {
+        if (!localStream) {
+            log('No active camera to switch.', 'system');
+            return;
+        }
+        if (availableCameras.length <= 1) {
+            log('Only one camera detected.', 'system');
+            return;
+        }
+
+        currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+        const nextCameraId = availableCameras[currentCameraIndex].deviceId;
+
+        log(`Switching to camera: ${availableCameras[currentCameraIndex].label || 'Unnamed Camera'}`, 'system');
+        statusDiv.textContent = "Switching camera...";
+        await getLocalMediaStream(nextCameraId);
     };
 
 
@@ -1090,36 +1567,408 @@
     // Auto-resize textarea
     document.getElementById('message').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
 
-    // Initial load of theme and persisted connection data
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme && themes.includes(savedTheme)) {
-            document.body.classList.add(savedTheme);
-            currentThemeIndex = themes.indexOf(savedTheme);
+    // Function to update the peer's connection status display
+    function updatePeerStatus(statusText, isOnline) {
+        if (!peerStatusElement) return; // Guard against element not existing
+        peerStatusElement.textContent = statusText;
+        // Update the class based on online/offline state for color/dot
+        if (isOnline) {
+            peerStatusElement.className = 'text-sm font-semibold text-green-500 flex items-center';
+            peerStatusElement.innerHTML = '<span class="h-2 w-2 bg-green-500 rounded-full mr-1"></span>' + statusText;
         } else {
-            // Default to 'light' if no theme saved or invalid theme
-            document.body.classList.add('light');
-            localStorage.setItem('theme', 'light');
-            currentThemeIndex = 0;
+            peerStatusElement.className = 'text-sm font-semibold text-gray-500 flex items-center';
+            peerStatusElement.innerHTML = '<span class="h-2 w-2 bg-gray-500 rounded-full mr-1"></span>' + statusText;
         }
+    }
 
-        const savedKey = localStorage.getItem('sharedKey');
-        const savedSignal = localStorage.getItem('localSignal');
+    // --- Reply Functions ---
+    function prepareReply(messageId, contentSnippet) {
+        currentReplyTo = { id: messageId, contentSnippet: contentSnippet };
+        replyContentSnippet.innerHTML = contentSnippet; // Use innerHTML as snippet might contain <br>
+        replyPreview.classList.remove('hidden');
+        document.getElementById('message').focus(); // Focus on input after preparing reply
+    }
 
-        if (savedKey) {
-            document.getElementById('sharedKey').value = savedKey;
+    function cancelReply() {
+        currentReplyTo = null;
+        replyContentSnippet.textContent = '';
+        replyPreview.classList.add('hidden');
+    }
+
+
+    // --- Sticker Functions ---
+
+    function areStickersEqual(s1, s2) {
+        return s1.type === s2.type && s1.content === s2.content;
+    }
+
+    function loadCustomStickers() {
+        const storedStickers = localStorage.getItem(CUSTOM_STICKERS_STORAGE_KEY);
+        if (storedStickers) {
+            try {
+                userCustomStickers = JSON.parse(storedStickers);
+                // Filter out any invalid or duplicate stickers and ensure type/content are present
+                userCustomStickers = userCustomStickers.filter(s => s.type && s.content && s.type === 'image'); // Only persist image URLs
+            } catch (e) {
+                console.error("Error parsing custom stickers from localStorage:", e);
+                userCustomStickers = [];
+            }
         }
-        if (savedSignal) {
-            document.getElementById('signalOut').value = savedSignal;
+    }
+
+    function saveCustomStickers() {
+        localStorage.setItem(CUSTOM_STICKERS_STORAGE_KEY, JSON.stringify(userCustomStickers));
+    }
+
+    function addCustomSticker(stickerObject) {
+        // Only track image stickers as "custom" in localStorage for now
+        // Emoji stickers are static predefined and don't need "recency" tracking in this way.
+        if (stickerObject.type === 'image') {
+            // Remove if already exists to move to front (for recency)
+            userCustomStickers = userCustomStickers.filter(s => !areStickersEqual(s, stickerObject));
+            
+            // Add the new sticker to the beginning of the array
+            userCustomStickers.unshift(stickerObject);
+
+            // Keep only the last MAX_RECENT_STICKERS
+            if (userCustomStickers.length > MAX_RECENT_STICKERS) {
+                userCustomStickers = userCustomStickers.slice(0, MAX_RECENT_STICKERS);
+            }
+            saveCustomStickers();
+            renderStickerPickerContent(); // Re-render the sticker picker to show updated recents
+        } else if (stickerObject.type === 'emoji') {
+            // For emojis, we still want to re-render to update their "recent" position
+            renderStickerPickerContent();
         }
+    }
+
+    function clearCustomStickers() {
+        userCustomStickers = [];
+        saveCustomStickers();
+        renderStickerPickerContent(); // Update the UI
+        log('Your custom sticker collection has been cleared.', 'system');
+    }
+
+    function renderStickerPickerContent() {
+        allStickersGrid.innerHTML = ''; // Clear the current grid
+
+        let allStickersToDisplay = [];
+
+        // 1. Add user-added custom stickers first (these are already ordered by recency)
+        userCustomStickers.forEach(sticker => {
+            allStickersToDisplay.push(sticker);
+        });
+
+        // 2. Add predefined stickers, but only if they are not already in the userCustomStickers (to avoid duplicates)
+        predefinedStickers.forEach(predefined => {
+            const isDuplicate = allStickersToDisplay.some(existing => areStickersEqual(existing, predefined));
+            if (!isDuplicate) {
+                allStickersToDisplay.push(predefined);
+            }
+        });
         
-        // If there's a stored key or signal, we can make the connect button more prominent
-        // Or provide a hint to the user.
-        if (savedKey || savedSignal) {
-            logToSetup('Connection details found. Enter peer\'s signal to reconnect, or click "Start New Connection".');
+        // 3. Render all stickers from the consolidated list
+        if (allStickersToDisplay.length > 0) {
+            allStickersToDisplay.forEach(sticker => {
+                const stickerItem = document.createElement('div');
+                stickerItem.className = 'sticker-item group'; // Add group for hover effect on remove button
+                stickerItem.onclick = () => sendSticker(sticker); 
+
+                if (sticker.type === 'emoji') {
+                    stickerItem.textContent = sticker.content;
+                } else if (sticker.type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = sticker.content;
+                    img.alt = 'Sticker';
+                    img.style.width = '40px';
+                    img.style.height = '40px';
+                    img.style.objectFit = 'contain';
+                    // Optional: Add an error handler for broken image URLs
+                    img.onerror = function() {
+                        this.onerror = null; // Prevent infinite loops
+                        this.src = 'https://placehold.co/40x40/cccccc/000000?text=ERR'; // Placeholder for broken image
+                        this.alt = 'Broken Sticker Image';
+                        console.warn(`Could not load sticker image: ${sticker.content}`);
+                    };
+                    stickerItem.appendChild(img);
+                }
+                
+                // Add remove button only for user-added custom image stickers
+                const isUserCustomSticker = userCustomStickers.some(s => areStickersEqual(s, sticker));
+                if (isUserCustomSticker) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn hidden group-hover:block'; // Show on hover
+                    removeBtn.textContent = '×';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent sending sticker when clicking remove
+                        removeCustomSticker(sticker);
+                    };
+                    stickerItem.appendChild(removeBtn);
+                }
+
+                allStickersGrid.appendChild(stickerItem);
+            });
+        } else {
+            allStickersGrid.innerHTML = '<div class="text-center text-sm text-gray-500 col-span-full">No stickers available. Add one using the URL input above or refresh for default stickers.</div>';
         }
-        // Initially disable video call buttons until peer connection is established
-        updateVideoCallButtonsState();
+    }
+
+    function removeCustomSticker(stickerObjectToRemove) {
+        userCustomStickers = userCustomStickers.filter(s => !areStickersEqual(s, stickerObjectToRemove));
+        saveCustomStickers();
+        renderStickerPickerContent(); // Re-render the picker
+        log('Custom sticker removed.', 'system');
+    }
+
+
+    function toggleStickerPicker() {
+        if (stickerPicker.classList.contains('hidden')) {
+            stickerPicker.classList.remove('hidden');
+            stickerPicker.style.display = 'flex'; // Use flex display
+            renderStickerPickerContent(); // Render content whenever picker is shown
+        } else {
+            stickerPicker.classList.add('hidden');
+            stickerPicker.style.display = 'none';
+        }
+    }
+
+    async function sendSticker(stickerObject) {
+        if (!peer || !peer.connected) {
+            log('Not connected. Cannot send sticker.', 'system');
+            return;
+        }
+        if (sendingFile.id || sendingImageSticker.id) {
+            log('A file or sticker transfer is already in progress. Please wait.', 'system');
+            return;
+        }
+
+        if (!stickerObject || !stickerObject.type || !stickerObject.content) {
+            console.error("Invalid sticker object to send:", stickerObject);
+            log('Error sending sticker: Invalid format.', 'system');
+            return;
+        }
+
+        // Add to custom stickers (which also updates recency) if it's an image.
+        // Emojis are not added to custom stickers.
+        if (stickerObject.type === 'image') {
+            addCustomSticker(stickerObject); 
+        }
+
+        const messageId = `sticker-${stickerObject.type}-${Date.now()}`;
+        const messageToSend = {
+            type: 'sticker', // All stickers use 'sticker' type for sending
+            content: stickerObject, // The sticker object itself
+            id: messageId
+        };
+
+        if (currentReplyTo) {
+            messageToSend.replyTo = { ...currentReplyTo }; // Include reply info
+        }
+
+        if (await sendPacket(messageToSend)) {
+            let sentHtml;
+            if (stickerObject.type === 'emoji') {
+                sentHtml = `<span class="sticker-message">${stickerObject.content}</span>`;
+            } else if (stickerObject.type === 'image') {
+                sentHtml = `<span class="sticker-message"><img src="${stickerObject.content}" alt="Sticker"></span>`;
+            }
+            log(sentHtml, 'sent', messageId, currentReplyTo); // Pass replyTo
+            toggleStickerPicker(); // Hide picker after sending
+            cancelReply(); // Clear reply context after sending
+        } else {
+            log(`Could not send sticker.`, 'system');
+        }
+    }
+
+    function addCustomStickerUrl() {
+        const url = customStickerUrlInput.value.trim();
+        customStickerUrlError.classList.add('hidden'); // Hide previous error
+
+        if (!url) {
+            customStickerUrlError.textContent = 'Please enter a URL.';
+            customStickerUrlError.classList.remove('hidden');
+            return;
+        }
+
+        // Basic URL validation
+        try {
+            new URL(url);
+        } catch (e) {
+            customStickerUrlError.textContent = 'Invalid URL format.';
+            customStickerUrlError.classList.remove('hidden');
+            return;
+        }
+
+        // Optional: Check for image extension, but actual loading will validate
+        const lowerCaseUrl = url.toLowerCase();
+        if (!lowerCaseUrl.endsWith('.gif') && !lowerCaseUrl.endsWith('.webp') &&
+            !lowerCaseUrl.endsWith('.png') && !lowerCaseUrl.endsWith('.jpg') &&
+            !lowerCaseUrl.endsWith('.jpeg')) {
+            customStickerUrlError.textContent = 'Only image URLs (gif, webp, png, jpg) are recommended.';
+            customStickerUrlError.classList.remove('hidden');
+        }
+
+        const newSticker = { type: 'image', content: url };
+        addCustomSticker(newSticker); // Add to custom stickers (which handles recency and persistence)
+        customStickerUrlInput.value = ''; // Clear input
+        log(`Custom sticker URL added: ${url}`, 'system');
+    }
+
+    // New function to handle saving a received sticker
+    function saveReceivedSticker(buttonElement, encodedSticker) {
+        try {
+            const stickerToSave = JSON.parse(atob(encodedSticker));
+            addCustomSticker(stickerToSave); // This adds to localStorage and re-renders the picker
+            buttonElement.remove(); // Remove the button after saving
+            log(`Sticker saved to your collection!`, 'system');
+        } catch (e) {
+            console.error("Error saving received sticker:", e);
+            log("Failed to save sticker.", "system");
+        }
+    }
+
+
+    async function sendImageStickerChunk() {
+        if (!sendingImageSticker.id || sendingImageSticker.currentIndex > sendingImageSticker.lastAck + 1) return;
+
+        if (sendingImageSticker.currentIndex >= sendingImageSticker.chunks.length) {
+            // All chunks sent and acknowledged (this logic would only be hit if we were chunking actual data, not URLs)
+            const sentHtml = `<span class="sticker-message"><img src="${sendingImageSticker.dataUrl}" alt="Sticker"></span>`;
+            log(sentHtml, 'sent', sendingImageSticker.id);
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('cancelFileBtn').classList.add('hidden');
+            }, 2000);
+            sendingImageSticker = {};
+            return;
+        }
+
+        const chunk = sendingImageSticker.chunks[sendingImageSticker.currentIndex];
+        
+        sendPacket({
+            type: 'image-sticker-chunk',
+            id: sendingImageSticker.id,
+            index: sendingImageSticker.currentIndex,
+            chunk: chunk
+        }).then(sent => {
+            if (sent) {
+                sendingImageSticker.ackTimeout = setTimeout(() => {
+                    log(`No ACK for image sticker chunk ${sendingImageSticker.currentIndex}, retrying...`, 'system');
+                    sendImageStickerChunk();
+                }, 10000);
+                document.getElementById('progressBar').style.width =
+                    `${((sendingImageSticker.currentIndex + 1) / sendingImageSticker.chunks.length) * 100}%`;
+                
+                if (sendingImageSticker.currentIndex === sendingImageSticker.lastAck + 1) {
+                    sendingImageSticker.currentIndex++;
+                }
+            } else {
+                log(`Critical send failure for image sticker chunk ${sendingImageSticker.currentIndex}. Aborting transfer.`, 'system');
+                clearTimeout(sendingImageSticker.ackTimeout);
+                cancelImageStickerTransfer(false);
+            }
+        });
+    }
+
+    async function handleImageStickerChunk(message) {
+        if (receivingImageSticker.id !== message.id) return;
+
+        receivingImageSticker.parts[message.index] = message.chunk;
+        receivingImageSticker.receivedSize += atob(message.chunk).length; // Calculate size from base64 length
+
+        document.getElementById('progressBar').style.width =
+            `${(receivingImageSticker.receivedSize / receivingImageSticker.size) * 100}%`;
+        
+        await sendPacket({ type: 'image-sticker-ack', id: message.id, index: message.index });
+
+        if (receivingImageSticker.receivedSize >= receivingImageSticker.size) { // Use >= for robustness
+            const fullDataUrl = `data:${receivingImageSticker.fileType};base64,${receivingImageSticker.parts.join('')}`;
+            
+            // Removed save button logic as custom stickers are removed
+            const receivedHtml = `<span class="sticker-message"><img src="${fullDataUrl}" alt="Sticker"></span>`;
+            log(receivedHtml, 'received', receivingImageSticker.id);
+            // Add received image sticker to custom stickers (which also updates recency)
+            addCustomSticker({ type: 'image', content: fullDataUrl }); // Store dataURL for received image stickers
+            
+            receivingImageSticker = {}; // Clear receiving state
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('cancelFileBtn').classList.add('hidden');
+            }, 2000);
+        }
+    }
+
+    function cancelImageStickerTransfer(shouldNotifyPeer) {
+        if (sendingImageSticker.id && shouldNotifyPeer) {
+            sendPacket({ type: 'image-sticker-cancel', id: sendingImageSticker.id });
+            log(`Image sticker transfer cancelled.`, 'system');
+        } else if (receivingImageSticker.id && shouldNotifyPeer) {
+            sendPacket({ type: 'image-sticker-cancel', id: receivingImageSticker.id });
+            log(`Receiving image sticker transfer cancelled.`, 'system');
+        }
+
+        clearTimeout(sendingImageSticker.ackTimeout);
+        sendingImageSticker = {};
+        receivingImageSticker = {};
+
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('cancelFileBtn').classList.add('hidden');
+        document.getElementById('progressBar').style.width = '0%';
+        document.getElementById('progressLabel').textContent = '';
+    }
+
+    // Modify the unified cancel button to handle both file and image sticker transfers
+    document.getElementById('cancelFileBtn').onclick = () => {
+        // Check which transfer is active and cancel it
+        if (sendingFile.id || receivingFile.id) {
+            cancelFileTransfer(true);
+        } else if (sendingImageSticker.id || receivingImageSticker.id) {
+            cancelImageStickerTransfer(true);
+        }
+    };
+    
+    // Function to enumerate all video input devices
+    async function enumerateCameras() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            availableCameras = devices.filter(device => device.kind === 'videoinput');
+            console.log('Available cameras:', availableCameras);
+            updateVideoCallButtonsState(); // Update state based on camera availability
+        } catch (error) {
+            console.error('Error enumerating devices:', error);
+            log('Could not access camera devices info.', 'system');
+        }
+    }
+
+
+    // Initial load of theme and persisted connection data
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Removed: localStorage.getItem('theme') and related theme loading.
+        // Default to 'light'
+        document.body.classList.add('light');
+        currentThemeIndex = 0;
+
+        // Load custom chat background from localStorage
+        const savedChatBackground = localStorage.getItem('chatBackground');
+        if (savedChatBackground) {
+            applyChatBackground(savedChatBackground);
+        }
+
+        loadCustomStickers(); // Load custom stickers
+        renderStickerPickerContent(); // Render all sticker picker content on load
+        
+        // Removed: All localStorage.getItem for savedKey, savedLocalSignal, savedPeerSignal
+        // Removed: All auto-reconnect logic.
+        // The setup screen will always be shown initially.
+        logToSetup('Enter a shared secret to begin.');
+        updatePeerStatus('Offline', false);
+        
+        // Enumerate cameras on page load
+        await enumerateCameras();
+        // Also listen for device changes (e.g., camera plugged/unplugged)
+        navigator.mediaDevices.ondevicechange = enumerateCameras;
+
+        updateVideoCallButtonsState(); // Initial state of call buttons
     });
 
   </script>
