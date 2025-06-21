@@ -306,34 +306,42 @@
         opacity: 1;
     }
 
-    /* Styles for Reply feature */
+    /* Styles for Reply and Delete action buttons */
     .message-bubble {
-        position: relative; /* Needed for positioning reply button */
+        position: relative;
     }
-    .reply-button {
+    .message-actions {
         position: absolute;
-        bottom: 4px; /* Adjust as needed */
-        right: 4px; /* Adjust as needed */
-        background-color: rgba(0, 0, 0, 0.1); /* Light background for visibility */
-        color: inherit; /* Inherit text color from parent bubble */
+        bottom: 2px;
+        right: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 5;
+    }
+    .message-bubble:hover .message-actions {
+        opacity: 1;
+    }
+    .action-button {
+        background-color: rgba(0, 0, 0, 0.1);
+        color: inherit;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
         font-size: 0.8rem;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        opacity: 0;
-        transition: opacity 0.2s;
-        z-index: 5;
+        border: none;
     }
-    .message-bubble:hover .reply-button {
-        opacity: 1; /* Show on hover */
+    .dark .action-button {
+        background-color: rgba(255, 255, 255, 0.15);
     }
-    /* Adjust for dark theme */
-    .dark .reply-button {
-        background-color: rgba(255, 255, 255, 0.1);
+    .action-button.delete-btn {
+        font-size: 0.9rem; /* Make '×' slightly larger for better visibility */
     }
 
     .reply-preview {
@@ -357,6 +365,9 @@
         text-overflow: ellipsis;
         font-size: 0.9rem;
         color: #555;
+        /* Flex properties to align thumbnail and text */
+        display: flex;
+        align-items: center;
     }
     .dark .reply-preview .content {
         color: #bbb;
@@ -380,9 +391,31 @@
         margin-bottom: 4px;
         font-size: 0.85em;
         opacity: 0.8;
+        cursor: pointer;
     }
     .dark .replied-message-content {
         border-left-color: #666;
+    }
+
+    /* MODIFICATION: Voice Message Styles */
+    #recordButton.recording {
+        color: #ef4444; /* Red color when recording */
+        animation: pulse-red 1.5s infinite;
+    }
+    @keyframes pulse-red {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    .voice-message-player {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 250px;
+    }
+    .voice-message-player audio {
+        width: 100%;
+        height: 30px;
     }
   </style>
 </head>
@@ -453,6 +486,12 @@
     </div>
 
     <footer class="p-2 flex flex-col space-y-2 relative">
+        <!-- MODIFICATION: Added recording status indicator -->
+        <div id="recordingIndicator" class="hidden items-center justify-center p-2">
+            <span class="h-3 w-3 bg-red-500 rounded-full animate-pulse mr-2"></span>
+            <span id="recordingTimer" class="text-sm text-gray-600 dark:text-gray-400">00:00</span>
+        </div>
+
         <!-- Reply Preview Section -->
         <div id="replyPreview" class="reply-preview hidden">
             <div class="content flex-grow">
@@ -466,7 +505,7 @@
                 <input type="checkbox" id="viewOnce" class="form-checkbox h-4 w-4 text-green-600 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500">
                 <span class="text-xs text-gray-500">View Once</span>
             </label>
-            <input type="file" id="mediaInput" onchange="prepareFile(event)" class="hidden" />
+            <input type="file" id="mediaInput" onchange="queueFilesForSending(event)" class="hidden" multiple />
             <label for="mediaInput" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
             </label>
@@ -476,6 +515,13 @@
                 </svg>
             </button>
             <textarea id="message" placeholder="Type a message" class="flex-grow p-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+            
+            <!-- MODIFICATION: Added microphone button for voice messages -->
+            <button id="recordButton" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600" title="Record Voice Message">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0a5 5 0 01-4.52 4.97A5.002 5.002 0 015 8a1 1 0 00-2 0a7.001 7.001 0 006 6.93V17H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" />
+                </svg>
+            </button>
             <button onclick="sendMessage()" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
             </button>
@@ -540,6 +586,12 @@
     const MAX_MESSAGES = 100; // Limit for messages in current session
     const CHUNK_SIZE = 64 * 1024; // 64 KB for file chunks and image sticker chunks
     let fileReader = null; // Reference to FileReader for cancellation
+    let fileSendQueue = [];
+
+    // MODIFICATION: Voice Message variables
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordingTimerInterval;
 
     // Define the themes and their names
     const themes = ['light', 'dark', 'theme-3', 'theme-4'];
@@ -551,8 +603,7 @@
     let localStream = null;
     let incomingCallOffer = null; // To store the received offer until accepted/rejected
     
-    // Removed startButton as its functionality is now merged
-    const callButton = document.getElementById('callButton'); // Renamed from startVideoCallButton
+    const callButton = document.getElementById('callButton');
     const hangupButton = document.getElementById('hangupButton');
     const localVideo = document.getElementById('localVideo');
     const remoteVideo = document.getElementById('remoteVideo');
@@ -561,27 +612,29 @@
     const incomingCallNotification = document.getElementById('incoming-call-notification');
     const acceptCallButton = document.getElementById('acceptCallButton');
     const rejectCallButton = document.getElementById('rejectCallButton');
-    const peerStatusElement = document.getElementById('peerStatus'); // New element for peer status
-    const chatBox = document.getElementById('chatBox'); // Get chatBox element
-    const switchCameraButton = document.getElementById('switchCameraButton'); // New button for camera switch
+    const peerStatusElement = document.getElementById('peerStatus');
+    const chatBox = document.getElementById('chatBox');
+    const switchCameraButton = document.getElementById('switchCameraButton');
 
-    let availableCameras = []; // To store available video input devices
-    let currentCameraIndex = 0; // Index of the currently active camera in availableCameras
+    let availableCameras = [];
+    let currentCameraIndex = 0;
+
+    // Typing status variables
+    let typingTimer;
+    let peerTypingTimer;
 
     // Reply feature variables
-    let currentReplyTo = null; // Stores { id: 'msg-id', contentSnippet: '...' }
+    let currentReplyTo = null;
     const replyPreview = document.getElementById('replyPreview');
     const replyContentSnippet = document.getElementById('replyContentSnippet');
 
     // Sticker related variables
-    // Predefined stickers are now objects with type 'emoji' or 'image' (using URLs)
     const predefinedStickers = [
         { type: 'emoji', content: '😀' }, { type: 'emoji', content: '😂' }, { type: 'emoji', content: '👍' },
         { type: 'emoji', content: '❤️' }, { type: 'emoji', content: '👏' }, { type: 'emoji', content: '🥳' },
         { type: 'emoji', content: '🤔' }, { type: 'emoji', content: '🚀' }, { type: 'emoji', content: '🌟' },
         { type: 'emoji', content: '💡' }, { type: 'emoji', content: '🎉' }, { type: 'emoji', content: '🔥' },
         { type: 'emoji', content: '💯' }, { type: 'emoji', content: '🙏' }, { type: 'emoji', content: '🤯' },
-        // Developer-provided image stickers using URLs
         { type: 'image', content: 'https://media.tenor.com/oWTGv7XpHY4AAAAm/sseeyall-bubu-dudu.webp' },
         { type: 'image', content: 'https://media.tenor.com/KNiXTCA36YYAAAAm/bubu-dudu-sseeyall.webp' },
         { type: 'image', content: 'https://media.tenor.com/BvlQdl0TAeIAAAAm/cute.webp' },
@@ -597,39 +650,29 @@
          { type: 'image', content: 'https://media.tenor.com/PXKZhCEfEfsAAAAm/bubu-bubu-dudu.webp' },
         { type: 'image', content: 'https://media.tenor.com/qZTZ0zYcB9YAAAAm/bubu-dudu-sseeyall.webp' },
         { type: 'image', content: 'https://media.tenor.com/BKP6erkQWjMAAAAm/bubu-dudu-sseeyall.webp' },
-        // Add more image sticker objects with their URLs here
     ];
-    
-    // userCustomStickers array, loaded from localStorage. This also acts as the "recently used" list for custom stickers.
     let userCustomStickers = [];
     const MAX_RECENT_STICKERS = 6;
     const CUSTOM_STICKERS_STORAGE_KEY = 'customStickers';
-
     const stickerPicker = document.getElementById('stickerPicker');
-    const allStickersGrid = document.getElementById('allStickersGrid'); // Consolidated grid
+    const allStickersGrid = document.getElementById('allStickersGrid');
     const customStickerUrlInput = document.getElementById('customStickerUrlInput');
     const customStickerUrlError = document.getElementById('customStickerUrlError');
 
 
     // --- UTILITY & SETUP ---
     function toggleTheme() {
-        // Remove all existing theme classes
         document.body.classList.remove(...themes);
-
-        // Move to the next theme
         currentThemeIndex = (currentThemeIndex + 1) % themes.length;
         const newTheme = themes[currentThemeIndex];
-
-        // Apply the new theme
         document.body.classList.add(newTheme);
-        // localStorage.setItem('theme', newTheme); // Save theme preference
     }
 
     function applyChatBackground(dataURL) {
         if (dataURL) {
             chatBox.style.backgroundImage = `url('${dataURL}')`;
             chatBox.classList.add('has-custom-bg');
-            localStorage.setItem('chatBackground', dataURL); // Store in browser data
+            localStorage.setItem('chatBackground', dataURL);
         } else {
             clearChatBackground();
         }
@@ -638,7 +681,6 @@
     function changeChatBackground(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = (e) => {
             applyChatBackground(e.target.result);
@@ -649,45 +691,36 @@
     function clearChatBackground() {
         chatBox.style.backgroundImage = '';
         chatBox.classList.remove('has-custom-bg');
-        localStorage.removeItem('chatBackground'); // Remove from browser data
+        localStorage.removeItem('chatBackground');
     }
 
-
-    // Function to start a call or toggle video call UI visibility
     async function startOrToggleCallUI() {
         if (!peer || !peer.connected) {
             alert("Please establish the main chat connection first.");
             return;
         }
 
-        // If video container is hidden, it means we want to open it and potentially start a call
         if (videoCallContainer.classList.contains('hidden')) {
             videoCallContainer.classList.remove('hidden');
-            // If there's no active call, attempt to start one immediately
             if (!rtcPeerConnection) {
                 try {
                     statusDiv.textContent = "Requesting camera access...";
-                    // Pass the current selected camera ID
                     await getLocalMediaStream(availableCameras[currentCameraIndex]?.deviceId);
                     localVideo.srcObject = localStream;
                     statusDiv.textContent = "Camera on. Initiating call...";
-                    setupPeerConnection(true); // True indicates this peer is the initiator
-                    // Offer creation and sending happens inside setupPeerConnection's onnegotiationneeded
+                    setupPeerConnection(true);
                 } catch (error) {
                     console.error("Error accessing media devices.", error);
                     alert("Could not access your camera. Please grant permissions or ensure no other app is using it.");
                     statusDiv.textContent = "Error: Camera access denied.";
-                    videoCallContainer.classList.add('hidden'); // Hide UI if camera fails
-                    hangUp(); // Clean up any partial state
+                    videoCallContainer.classList.add('hidden');
+                    hangUp();
                 }
             } else {
-                // If rtcPeerConnection exists, it means a call is active/incoming/connecting, just show UI
                 statusDiv.textContent = "Call active.";
             }
         } else {
-            // If video container is visible and we click again, it means we want to close/hang up
             if (rtcPeerConnection) {
-                // If a call is active, clicking the icon again should hang up
                 hangUp();
             }
             videoCallContainer.classList.add('hidden');
@@ -716,8 +749,6 @@
         try { 
             const peerSignalData = JSON.parse(signalInInput.value);
             peer.signal(peerSignalData); 
-            // Removed: localStorage.setItem('peerSignal', signalInInput.value); 
-            // Also derive key here if it hasn't been derived yet on auto-load
             if (!aesKey) {
                 aesKey = await deriveKey(sharedKeyInput.value);
             }
@@ -736,18 +767,14 @@
     }
 
     function newConnection() {
-        // Removed: localStorage.removeItem('sharedKey');
-        // Removed: localStorage.removeItem('localSignal');
-        // Removed: localStorage.removeItem('peerSignal'); // Clear peer signal as well
-        // Removed: localStorage.removeItem('chatMessages'); 
         if (peer) {
-            peer.destroy(); // Properly destroy the peer connection
+            peer.destroy();
             peer = null;
         }
         if (rtcPeerConnection) {
-            hangUp(); // Ensure video call is terminated
+            hangUp();
         }
-        updatePeerStatus('Offline', false); // Reset status
+        updatePeerStatus('Offline', false);
         window.location.reload(); 
     }
     
@@ -756,12 +783,10 @@
         const chatBox = document.getElementById('chatBox');
         const div = document.createElement('div');
 
-        // Store message object in chatMessages array for retrieval during replies
-        // Only store messages that are visible (not view-once after revealing)
-        if (type === 'text' || type === 'sticker') { // Only store for reply if it's persistent text or sticker
+        if ((type === 'sent' || type === 'received' || type === 'voice-message') && msgId) {
             chatMessages.push({ id: msgId, content: content, type: type });
             if (chatMessages.length > MAX_MESSAGES) {
-                chatMessages.shift(); // Remove oldest message if over limit
+                chatMessages.shift();
             }
         }
         
@@ -770,26 +795,23 @@
             div.innerHTML = `<span class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold px-2 py-1 rounded-full">${content}</span>`;
         } else {
             const bubble = document.createElement('div');
-            div.id = msgId; // Apply ID to the outer div
+            div.id = msgId;
 
-            // Wrap the content if it's a reply
-            let messageContentHtml = content;
-            if (replyTo) {
-                // Sanitize replyTo.contentSnippet to prevent HTML injection if it's from user input
+            let messageContentHtml = '';
+            if (replyTo && replyTo.contentSnippet) {
                 const sanitizedSnippet = replyTo.contentSnippet.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                messageContentHtml = `
+                 messageContentHtml += `
                     <div class="replied-message-content" onclick="scrollToMessage('${replyTo.id}')">
-                        <p class="text-gray-600 dark:text-gray-400">Replied to:</p>
-                        <p class="font-normal text-sm">${sanitizedSnippet}</p>
+                        <p class="font-semibold text-sm">${sanitizedSnippet}</p>
                     </div>
-                    ${content}
                 `;
             }
+            messageContentHtml += content;
 
 
-            bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow group'; // Added group for hover effect on reply button
+            bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow group';
 
-            if (type === 'sent') {
+            if (type === 'sent' || (type === 'voice-message' && content.includes('sent'))) {
                 div.className = 'flex justify-end mb-2';
                 bubble.classList.add('sent-bubble');
             } else {
@@ -799,36 +821,55 @@
             bubble.innerHTML = messageContentHtml;
             div.appendChild(bubble);
 
-            // Add reply button for non-system, non-view-once messages
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'message-actions';
+            let hasActions = false;
+
             if (type !== 'view-once-text' && !content.includes('View-Once Media')) {
                 const replyButton = document.createElement('button');
-                replyButton.className = 'reply-button hidden group-hover:block'; // Hidden by default, shown on group hover
-                replyButton.innerHTML = '&#x21A9;'; // Unicode for reply icon
+                replyButton.className = 'action-button reply-btn';
+                replyButton.innerHTML = '&#x21A9;'; // Reply arrow
                 replyButton.title = 'Reply';
-                // Store actual content (or meaningful snippet) for reply
-                const snippet = (typeof content === 'string') ? content.replace(/<br>/g, ' ').substring(0, 50) + (content.length > 50 ? '...' : '') : 'Sticker/Media';
-                replyButton.onclick = () => prepareReply(msgId, snippet);
-                bubble.appendChild(replyButton);
+                replyButton.onclick = (e) => {
+                    e.stopPropagation();
+                    prepareReply(msgId);
+                };
+                actionsContainer.appendChild(replyButton);
+                hasActions = true;
+            }
+
+            if (type === 'sent' || (type === 'voice-message' && content.includes('sent'))) {
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'action-button delete-btn';
+                deleteButton.innerHTML = '&times;'; // 'X' symbol
+                deleteButton.title = 'Delete';
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteMessage(msgId);
+                };
+                actionsContainer.appendChild(deleteButton);
+                hasActions = true;
+            }
+
+            if (hasActions) {
+                bubble.appendChild(actionsContainer);
             }
         }
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Function to scroll to a replied message
     function scrollToMessage(messageId) {
         const messageElement = document.getElementById(messageId);
         if (messageElement) {
             messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Optional: Highlight the message temporarily
-            messageElement.style.transition = 'background-color 0.5s ease-in-out';
             const originalBg = messageElement.querySelector('.message-bubble').style.backgroundColor;
             messageElement.querySelector('.message-bubble').style.backgroundColor = 'yellow';
             setTimeout(() => {
                 messageElement.querySelector('.message-bubble').style.backgroundColor = originalBg;
             }, 1500);
         } else {
-            log('Original message not found (may have been cleared or deleted).', 'system');
+            log('Original message not found (may have been cleared).', 'system');
         }
     }
 
@@ -840,35 +881,32 @@
     // --- P2P CORE LOGIC ---
     function initPeer(initiator) {
       peer = new SimplePeer({ initiator, trickle: false });
-      updatePeerStatus('Connecting...', false); // Set status to connecting when peer initialized
+      updatePeerStatus('Connecting...', false);
 
       peer.on('signal', data => { 
           document.getElementById('signalOut').value = JSON.stringify(data); 
-          // Removed: if (initiator) { localStorage.setItem('localSignal', JSON.stringify(data)); }
       });
       peer.on('connect', () => { 
           document.getElementById('setup').classList.add('hidden'); 
           document.getElementById('app').classList.remove('hidden'); 
           log('Connection established!'); 
-          // Removed: loadMessages(); 
-          // Removed: localStorage.setItem('sharedKey', document.getElementById('sharedKey').value);
-          updatePeerStatus('Online', true); // Update status to Online
+          updatePeerStatus('Online', true);
           updateVideoCallButtonsState();
       });
       peer.on('error', err => { 
           console.error('Peer error:', err); 
-          log('Connection error. Trying to reconnect...', 'system'); 
-          updatePeerStatus('Offline', false); // Update status to Offline
+          log('Connection error. Please try starting a new connection.', 'system'); 
+          updatePeerStatus('Offline', false);
           hangUp(); 
-          cancelFileTransfer(false); // Also cancel any ongoing file transfers
-          cancelImageStickerTransfer(false); // Cancel any ongoing sticker transfers
+          cancelFileTransfer(false);
+          cancelImageStickerTransfer(false);
       }); 
       peer.on('close', () => { 
-          log('Connection closed. Trying to reconnect...', 'system'); 
-          updatePeerStatus('Offline', false); // Update status to Offline
+          log('Connection closed.', 'system'); 
+          updatePeerStatus('Offline', false);
           hangUp();
-          cancelFileTransfer(false); // Also cancel any ongoing file transfers
-          cancelImageStickerTransfer(false); // Cancel any ongoing sticker transfers
+          cancelFileTransfer(false);
+          cancelImageStickerTransfer(false);
       });
       peer.on('data', async data => {
         try {
@@ -879,7 +917,24 @@
           // --- MESSAGE HANDLER ---
           switch (message.type) {
               case 'text':
-                  log(message.content, 'received', message.id, message.replyTo); // Pass replyTo
+                  log(message.content, 'received', message.id, message.replyTo);
+                  break;
+              // VOICE MESSAGE FIX: Use mimeType from message for better compatibility
+              case 'voice-message':
+                  const blobType = message.mimeType || 'audio/webm'; // Fallback for old messages
+                  const audioBlob = new Blob([Uint8Array.from(atob(message.chunk), c => c.charCodeAt(0))], { type: blobType });
+                  const audioUrl = URL.createObjectURL(audioBlob);
+                  const audioPlayer = `<div class="voice-message-player"><audio controls src="${audioUrl}"></audio></div>`;
+                  log(audioPlayer, 'received', message.id, message.replyTo);
+                  break;
+              case 'typing':
+                  if (peerStatusElement.textContent.includes('Online')) {
+                      peerStatusElement.innerHTML = `<span class="h-2 w-2 bg-green-500 rounded-full mr-1 animate-pulse"></span><span class="italic">typing...</span>`;
+                      clearTimeout(peerTypingTimer);
+                      peerTypingTimer = setTimeout(() => {
+                          updatePeerStatus('Online', true);
+                      }, 2000);
+                  }
                   break;
               case 'view-once-text':
                   const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceText(this, '${btoa(JSON.stringify(message.content))}')"><p class="font-bold">👁️ View-Once Message</p><p class="text-xs">Click to reveal</p></div>`;
@@ -888,16 +943,15 @@
               case 'delete':
                   const msgEl = document.getElementById(message.id);
                   if (msgEl) {
-                      msgEl.remove(); // Direct removal
-                      // Also remove from chatMessages array if it was stored
+                      msgEl.remove();
                       chatMessages = chatMessages.filter(msg => msg.id !== message.id);
                   }
                   break;
               case 'file-meta':
                   receivingFile = { ...message, chunks: [], receivedSize: 0 };
-                  log(`Receiving file: <strong>${message.name}</strong> (${(message.size / 1024 / 1024).toFixed(2)} MB)`, 'system', message.id); // Use system type for file progress
-                  document.getElementById('progressContainer').style.display = 'flex'; // Use flex for layout
-                  document.getElementById('cancelFileBtn').classList.remove('hidden'); // Show cancel button for receiving
+                  log(`Receiving file: <strong>${message.name}</strong> (${(message.size / 1024 / 1024).toFixed(2)} MB)`, 'system', message.id);
+                  document.getElementById('progressContainer').style.display = 'flex';
+                  document.getElementById('cancelFileBtn').classList.remove('hidden');
                   document.getElementById('progressLabel').textContent = `Receiving ${message.name}...`;
                   break;
               case 'file-chunk':
@@ -913,21 +967,21 @@
               case 'file-cancel':
                   if (receivingFile.id === message.id) {
                       log(`File transfer for ${receivingFile.name} cancelled by peer.`, 'system');
-                      receivingFile = {}; // Clear receiving state
+                      receivingFile = {};
                       document.getElementById('progressContainer').style.display = 'none';
-                      document.getElementById('cancelFileBtn').classList.add('hidden'); // Hide cancel button
+                      document.getElementById('cancelFileBtn').classList.add('hidden');
                   }
                   break;
-              case 'webrtc-signal': // Handle WebRTC signals
+              case 'webrtc-signal':
                   handleWebRTCSignal(message.signalData);
                   break;
               case 'call-rejected':
                   log('Your call was rejected by the peer.', 'system');
-                  hangUp(); // Reset local call state
+                  hangUp();
                   break;
               case 'call-ended':
                   log('The call was ended by the peer.', 'system');
-                  hangUp(); // Reset local call state
+                  hangUp();
                   break;
               case 'sticker':
                   let stickerHtmlContent;
@@ -939,23 +993,17 @@
                   } else if (receivedSticker.type === 'image') {
                       stickerHtmlContent = `<span class="sticker-message"><img src="${receivedSticker.content}" alt="Sticker"></span>`;
                       
-                      // Check if this image sticker is already in the user's custom stickers
                       const isAlreadySaved = userCustomStickers.some(s => areStickersEqual(s, receivedSticker));
 
                       if (!isAlreadySaved) {
-                          // If not saved, provide an option to save it
-                          // Encode the sticker object to pass it safely through HTML attribute
                           const encodedSticker = btoa(JSON.stringify(receivedSticker));
                           saveButtonHtml = `<button class="save-sticker-btn text-xs px-2 py-1 bg-blue-500 text-white rounded-full mt-2 hover:bg-blue-600" onclick="saveReceivedSticker(this, '${encodedSticker}')">Save Sticker</button>`;
                       }
                   }
                   
-                  // Combine sticker content and optional save button
                   const fullMessageContent = stickerHtmlContent + (saveButtonHtml ? `<div class="text-right">${saveButtonHtml}</div>` : '');
                   
-                  log(fullMessageContent, 'received', message.id, message.replyTo); // Pass replyTo
-                  // Always add the sticker to custom stickers for "recency" even if it's predefined.
-                  // This also ensures it's persisted if it's a new custom image.
+                  log(fullMessageContent, 'received', message.id, message.replyTo);
                   addCustomSticker(receivedSticker);
                   break;
               case 'image-sticker-meta':
@@ -989,7 +1037,7 @@
     }
 
     async function sendPacket(message) { 
-        if (!peer || !peer.connected) { log('Not connected.', 'system'); return false; } 
+        if (!peer || !peer.connected) { return false; } 
         if (!aesKey) { aesKey = await deriveKey(document.getElementById('sharedKey').value); } 
         try { 
             peer.send(await encrypt(JSON.stringify(message))); 
@@ -1002,7 +1050,7 @@
     }
     async function sendMessage() { 
         const msgInput = document.getElementById('message');
-        if (!msgInput.value.trim()) return; // Prevent sending empty messages
+        if (!msgInput.value.trim()) return;
 
         const messageContent = msgInput.value.replace(/\n/g, '<br>');
         const isViewOnce = document.getElementById('viewOnce').checked;
@@ -1016,21 +1064,20 @@
         };
 
         if (currentReplyTo) {
-            messageToSend.replyTo = { ...currentReplyTo }; // Include reply info
+            messageToSend.replyTo = { ...currentReplyTo };
         }
 
         if (await sendPacket(messageToSend)) {
             if (!isViewOnce) {
-                // If message is text, allow deletion and include reply info
-                const sentHTML = `${messageContent} <button onclick="deleteMessage('${messageId}')" class="text-xs font-bold text-red-500 hover:underline ml-2 opacity-50 hover:opacity-100">[X]</button>`;
-                log(sentHTML, 'sent', messageId, currentReplyTo); // Pass replyTo
+                const sentHTML = messageContent;
+                log(sentHTML, 'sent', messageId, currentReplyTo);
             } else {
                 log(`<i>Sent a 'view-once' message.</i>`, 'sent', messageId); 
             }
             msgInput.value = ''; 
             msgInput.style.height = 'auto';
             document.getElementById('viewOnce').checked = false;
-            cancelReply(); // Clear reply context after sending
+            cancelReply();
         } 
     }
 
@@ -1050,7 +1097,7 @@
             img.src = blobInfo.url;
             img.className = "max-w-xs rounded-lg";
             img.alt = "View-once Image";
-            img.oncontextmenu = () => false; // Prevent right-click save
+            img.oncontextmenu = () => false;
             element.innerHTML = '';
             element.appendChild(img);
             setTimeout(() => {
@@ -1063,7 +1110,7 @@
             video.src = blobInfo.url;
             video.autoplay = true;
             video.className = "max-w-xs rounded-lg";
-            video.oncontextmenu = () => false; // Prevent right-click save
+            video.oncontextmenu = () => false;
             video.onended = () => {
                 element.parentElement.remove(); 
                 URL.revokeObjectURL(blobInfo.url);
@@ -1079,9 +1126,7 @@
     function hideFullscreenImage() { document.getElementById('fullscreen-viewer').classList.add('hidden'); }
 
     async function deleteMessage(messageId) {
-        // Find and remove from chatMessages array first
         chatMessages = chatMessages.filter(msg => msg.id !== messageId);
-
         if (await sendPacket({ type: 'delete', id: messageId })) {
             const msgElementToRemove = document.getElementById(messageId);
             if (msgElementToRemove) {
@@ -1102,7 +1147,7 @@
           if (receivingFile.isViewOnce) {
               const blobId = `blob-${Date.now()}`;
               viewOnceBlobs[blobId] = { url: URL.createObjectURL(fileBlob), type: receivingFile.fileType, name: receivingFile.name };
-              const mediaIcon = receivingFile.fileType.startsWith('image/') ? '🖼️' : '🎬';
+              const mediaIcon = receivingFile.fileType.startsWith('image/') ? '🖼️' : '🎞️';
               const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceMedia(this, '${blobId}')"><p class="font-bold">${mediaIcon} View-Once Media</p><p class="text-xs>${receivingFile.name} - Click to reveal</p></div>`;
               log(placeholderHTML, 'received', receivingFile.id); 
           } else {
@@ -1124,15 +1169,40 @@
       }
     }
 
-    function prepareFile(event) { 
-        const file = event.target.files[0];
-        if (!file) return;
-        if (sendingFile.id || sendingImageSticker.id) { log('A transfer is already in progress.', 'system'); return; } // Check both file and sticker transfers
+    function queueFilesForSending(event) {
+        const files = event.target.files;
+        if (!files.length) return;
+
+        for (const file of files) {
+            fileSendQueue.push(file);
+        }
+
+        if (!sendingFile.id && !sendingImageSticker.id) {
+            startNextFileTransfer();
+        }
+        event.target.value = null; 
+    }
+    
+    function startNextFileTransfer() {
+        if (fileSendQueue.length === 0) {
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('cancelFileBtn').classList.add('hidden');
+            }, 2000);
+            return;
+        }
+
+        const file = fileSendQueue[0];
+
+        if (sendingFile.id || sendingImageSticker.id) {
+            log('A transfer is already in progress.', 'system');
+            return;
+        }
         
         const isViewOnce = document.getElementById('viewOnce').checked;
         const fileId = `file-${Date.now()}`;
         
-        log(`Preparing to send: <strong>${file.name}</strong>...`, 'system', fileId);
+        log(`Preparing to send: <strong>${file.name}</strong> (${fileSendQueue.length} file(s) in queue)...`, 'system', fileId);
         document.getElementById('progressContainer').style.display = 'flex'; 
         document.getElementById('cancelFileBtn').classList.remove('hidden'); 
         document.getElementById('progressLabel').textContent = `Sending ${file.name}...`;
@@ -1149,23 +1219,22 @@
             }
             if(await sendPacket({ type: 'file-meta', id: fileId, name: file.name, size: file.size, fileType: file.type, isViewOnce })) {
                 sendChunk();
-                document.getElementById('viewOnce').checked = false;
             } else { 
-                log(`Could not initiate file transfer.`, 'system'); 
+                log(`Could not initiate file transfer for ${file.name}.`, 'system'); 
                 cancelFileTransfer(false); 
             }
         };
         fileReader.onerror = (e) => {
             console.error("FileReader error:", e);
-            log("Error reading file for transfer.", "system");
+            log(`Error reading file ${file.name}.`, "system");
             cancelFileTransfer(false);
         };
         fileReader.readAsArrayBuffer(file); 
-        event.target.value = null; 
     }
 
     function sendChunk() {
-        if (!sendingFile.id || sendingFile.currentIndex > sendingFile.lastAck + 1) return;
+        if (!sendingFile.id) return;
+        
         if (sendingFile.currentIndex >= sendingFile.chunks.length) {
             if (!sendingFile.isViewOnce) {
                 const fileBlob = new Blob([sendingFile.buffer], {type: sendingFile.type});
@@ -1178,15 +1247,22 @@
                 }
                 log(mediaHTML, 'sent', sendingFile.id); 
             } else {
-                log(`<i>Sent a 'view-once' file.</i>`, 'sent', sendingFile.id); 
+                log(`<i>Sent a 'view-once' file: ${sendingFile.name}</i>`, 'sent', sendingFile.id); 
             }
-            setTimeout(() => { 
-                document.getElementById('progressContainer').style.display = 'none'; 
-                document.getElementById('cancelFileBtn').classList.add('hidden'); 
-            }, 2000);
-            sendingFile = {}; 
+
+            sendingFile = {};
+            fileSendQueue.shift();
+            
+            if (fileSendQueue.length === 0) {
+                 document.getElementById('viewOnce').checked = false; 
+            }
+            
+            startNextFileTransfer(); 
             return;
         }
+
+        if (sendingFile.currentIndex > sendingFile.lastAck + 1) return;
+
         const chunk = sendingFile.chunks[sendingFile.currentIndex];
         const base64Chunk = btoa(new Uint8Array(chunk).reduce((data, byte) => data + String.fromCharCode(byte), ''));
         sendPacket({ type: 'file-chunk', id: sendingFile.id, index: sendingFile.currentIndex, chunk: base64Chunk }).then(sent => {
@@ -1207,13 +1283,18 @@
             fileReader.abort(); 
             fileReader = null;
         }
+        
         if (sendingFile.id && shouldNotifyPeer) {
             sendPacket({ type: 'file-cancel', id: sendingFile.id });
             log(`File transfer for ${sendingFile.name} cancelled.`, 'system');
         } else if (receivingFile.id && shouldNotifyPeer) {
-             // This branch handles a local cancel of a *receiving* file, which isn't directly exposed by a button but is here for completeness.
-            sendPacket({ type: 'file-cancel', id: receivingFile.id }); // Tell sender we cancelled
+            sendPacket({ type: 'file-cancel', id: receivingFile.id });
             log(`Receiving file transfer for ${receivingFile.name} cancelled.`, 'system');
+        }
+        
+        if (fileSendQueue.length > 0) {
+            log(`Cleared ${fileSendQueue.length} pending file(s) from the queue.`, 'system');
+            fileSendQueue = [];
         }
         
         clearTimeout(sendingFile.ackTimeout); 
@@ -1227,41 +1308,28 @@
     }
 
     // --- WebRTC CALLING LOGIC (merged with data channel) ---
-
-    // Function to get media stream with specific deviceId (or default if null)
     async function getLocalMediaStream(deviceId = null) {
-        if (localStream) { // Stop existing tracks if any
+        if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
         }
-
         const constraints = {
             video: deviceId ? { deviceId: { exact: deviceId } } : true,
             audio: true
         };
-
         try {
             localStream = await navigator.mediaDevices.getUserMedia(constraints);
             localVideo.srcObject = localStream;
-
-            // If a peer connection is active, replace the tracks
             if (rtcPeerConnection) {
-                // Get current senders for video and audio
                 const videoSender = rtcPeerConnection.getSenders().find(sender => sender.track.kind === 'video');
                 const audioSender = rtcPeerConnection.getSenders().find(sender => sender.track.kind === 'audio');
-
-                // Replace video track
                 if (videoSender && localStream.getVideoTracks().length > 0) {
                     await videoSender.replaceTrack(localStream.getVideoTracks()[0]);
                 } else if (localStream.getVideoTracks().length > 0) {
-                    // If no video sender existed but we now have a video track, add it
                     rtcPeerConnection.addTrack(localStream.getVideoTracks()[0], localStream);
                 }
-
-                // Replace audio track
                 if (audioSender && localStream.getAudioTracks().length > 0) {
                     await audioSender.replaceTrack(localStream.getAudioTracks()[0]);
                 } else if (localStream.getAudioTracks().length > 0) {
-                    // If no audio sender existed but we now have an audio track, add it
                     rtcPeerConnection.addTrack(localStream.getAudioTracks()[0], localStream);
                 }
             }
@@ -1270,45 +1338,36 @@
             console.error("Error accessing media devices:", error);
             alert("Could not access your camera. Please grant permissions or ensure no other app is using it.");
             statusDiv.textContent = "Error: Camera access denied.";
-            localStream = null; // Reset localStream on error
+            localStream = null;
             if (rtcPeerConnection) {
-                hangUp(); // End call if camera fails during active call/switch
+                hangUp();
             }
             return false;
         } finally {
-             updateVideoCallButtonsState(); // Update button states based on new stream status
+             updateVideoCallButtonsState();
         }
     }
 
 
     function updateVideoCallButtonsState() {
         const isPeerConnected = peer && peer.connected;
-        const inCall = !!rtcPeerConnection; // True if rtcPeerConnection exists
+        const inCall = !!rtcPeerConnection;
         const isIncomingCall = !incomingCallNotification.classList.contains('hidden');
         const hasMultipleCameras = availableCameras.length > 1;
 
-
-        // Hide notification if it's not an incoming call anymore
         if (!isIncomingCall && incomingCallNotification.style.display !== 'none') {
             incomingCallNotification.classList.add('hidden');
         }
 
-        // Main call button inside video container
-        // Visible if no call is in progress/incoming, and peer is connected
         callButton.disabled = !isPeerConnected || inCall || isIncomingCall;
-        callButton.style.display = (inCall || isIncomingCall) ? 'none' : ''; // Hide if call is active or incoming
+        callButton.style.display = (inCall || isIncomingCall) ? 'none' : '';
 
-        // Hangup button
-        // Visible if a call is in progress/incoming
-        hangupButton.disabled = !isPeerConnected || (!inCall && !isIncomingCall); // Enabled if call exists or is incoming AND peer is connected
-        hangupButton.style.display = (inCall || isIncomingCall) ? '' : 'none'; // Show if call is active or incoming
+        hangupButton.disabled = !isPeerConnected || (!inCall && !isIncomingCall);
+        hangupButton.style.display = (inCall || isIncomingCall) ? '' : 'none';
 
-        // Switch Camera button
-        switchCameraButton.disabled = !localStream || !hasMultipleCameras; // Enabled only if a local stream is active and multiple cameras exist
-        switchCameraButton.style.display = (localStream && hasMultipleCameras) ? '' : 'none'; // Show only if local stream is active and multiple cameras are found
+        switchCameraButton.disabled = !localStream || !hasMultipleCameras;
+        switchCameraButton.style.display = (localStream && hasMultipleCameras) ? '' : 'none';
 
-
-        // Accept/Reject buttons for incoming call notification
         if (isIncomingCall) {
             acceptCallButton.style.display = '';
             rejectCallButton.style.display = '';
@@ -1319,10 +1378,9 @@
             rejectCallButton.style.display = 'none';
         }
 
-        // Update status text based on state
         if (!isPeerConnected) {
             statusDiv.textContent = 'Not connected to peer chat.';
-        } else if (!localStream && !inCall && !isIncomingCall) { // Added !inCall and !isIncomingCall
+        } else if (!localStream && !inCall && !isIncomingCall) {
             statusDiv.textContent = 'Camera Off. Ready to start call.';
         } else if (isIncomingCall) {
             statusDiv.textContent = 'Incoming Call...';
@@ -1334,12 +1392,12 @@
                 statusDiv.textContent = 'Call Connected!';
                 statusDiv.style.display = 'block';
                 setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
-                updateVideoCallButtonsState(); // Update buttons immediately
+                updateVideoCallButtonsState();
             } else if (rtcPeerConnection && ['disconnected', 'closed', 'failed'].includes(rtcPeerConnection.connectionState)) {
                  statusDiv.textContent = 'Call ended.';
-                 statusDiv.style.display = 'block'; // Show status temporarily
+                 statusDiv.style.display = 'block';
             } else {
-                statusDiv.textContent = 'Ready to start call.'; // Fallback
+                statusDiv.textContent = 'Ready to start call.';
             }
         }
 
@@ -1347,7 +1405,6 @@
     const setupPeerConnection = (isInitiator) => {
         rtcPeerConnection = new RTCPeerConnection(servers);
         
-        // Add local stream tracks only if available (will be available from startOrToggleCallUI or acceptCallButton)
         if (localStream) {
             localStream.getTracks().forEach(track => rtcPeerConnection.addTrack(track, localStream));
         }
@@ -1355,7 +1412,7 @@
         rtcPeerConnection.ontrack = event => {
             const [remoteStream] = event.streams;
             remoteVideo.srcObject = remoteStream;
-            statusDiv.style.display = 'none'; // Hide status once video starts
+            statusDiv.style.display = 'none';
         };
 
         rtcPeerConnection.onicecandidate = event => {
@@ -1385,15 +1442,14 @@
                 statusDiv.textContent = 'Call Connected!';
                 statusDiv.style.display = 'block';
                 setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
-                updateVideoCallButtonsState(); // Update buttons immediately
+                updateVideoCallButtonsState();
             } else if (['disconnected', 'closed', 'failed'].includes(rtcPeerConnection.connectionState)) {
-                hangUp(); // Call hangUp if connection fails/closes
+                hangUp();
             }
         };
-        updateVideoCallButtonsState(); // Update buttons after PC setup
+        updateVideoCallButtonsState();
     };
 
-    // New primary call button inside video container
     callButton.onclick = async () => {
         if (!peer || !peer.connected) {
             alert("Please establish the main chat connection first.");
@@ -1403,19 +1459,16 @@
             log('A call is already active or being attempted.', 'system');
             return;
         }
-
         try {
             statusDiv.textContent = "Requesting camera access...";
-            // Use current camera device ID when initiating call
             await getLocalMediaStream(availableCameras[currentCameraIndex]?.deviceId);
             statusDiv.textContent = "Camera on. Initiating call...";
-            setupPeerConnection(true); // True indicates this peer is the initiator
-            // Offer creation and sending happens inside onnegotiationneeded
+            setupPeerConnection(true);
         } catch (error) {
             console.error("Error accessing media devices.", error);
             alert("Could not access your camera. Please grant permissions or ensure no other app is using it.");
             statusDiv.textContent = "Error: Camera access denied.";
-            hangUp(); // Clean up any partial state
+            hangUp();
         } finally {
             updateVideoCallButtonsState();
         }
@@ -1432,19 +1485,18 @@
             return;
         }
 
-        incomingCallNotification.classList.add('hidden'); // Hide notification
+        incomingCallNotification.classList.add('hidden');
         statusDiv.textContent = "Accepting call...";
-        videoCallContainer.classList.remove('hidden'); // Ensure video container is visible
+        videoCallContainer.classList.remove('hidden');
 
         try {
-            // Get local stream if not already active, using current camera device ID
             if (!localStream) {
                 await getLocalMediaStream(availableCameras[currentCameraIndex]?.deviceId);
                 statusDiv.textContent = "Camera on. Connecting...";
             }
             
             if (!rtcPeerConnection) {
-                setupPeerConnection(false); // Set up as answerer if not already
+                setupPeerConnection(false);
             } 
             
             await rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(incomingCallOffer));
@@ -1456,9 +1508,9 @@
             console.error("Error accepting call:", e);
             alert("Failed to accept call. Check camera permissions.");
             statusDiv.textContent = "Error accepting call.";
-            hangUp(); // Clean up if acceptance fails
+            hangUp();
         } finally {
-            incomingCallOffer = null; // Clear the stored offer
+            incomingCallOffer = null;
             updateVideoCallButtonsState();
         }
     };
@@ -1468,11 +1520,11 @@
             alert("Main chat connection not established.");
             return;
         }
-        incomingCallNotification.classList.add('hidden'); // Hide notification
+        incomingCallNotification.classList.add('hidden');
         statusDiv.textContent = "Call Rejected.";
-        sendPacket({ type: 'call-rejected' }); // Notify initiator
-        incomingCallOffer = null; // Clear stored offer
-        hangUp(); // Reset call state locally
+        sendPacket({ type: 'call-rejected' });
+        incomingCallOffer = null;
+        hangUp();
     };
 
     switchCameraButton.onclick = async () => {
@@ -1484,10 +1536,8 @@
             log('Only one camera detected.', 'system');
             return;
         }
-
         currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
         const nextCameraId = availableCameras[currentCameraIndex].deviceId;
-
         log(`Switching to camera: ${availableCameras[currentCameraIndex].label || 'Unnamed Camera'}`, 'system');
         statusDiv.textContent = "Switching camera...";
         await getLocalMediaStream(nextCameraId);
@@ -1498,17 +1548,13 @@
         if (signalData.type === 'offer') {
             if (rtcPeerConnection && rtcPeerConnection.connectionState !== 'closed' && rtcPeerConnection.connectionState !== 'new') {
                 console.warn("Already in a call or call setup. Ignoring new offer.");
-                // Optionally send a busy signal back
                 return;
             }
-            
-            // Show incoming call notification
-            incomingCallOffer = signalData.sdp; // Store the offer
-            incomingCallNotification.classList.remove('hidden'); // Show notification
+            incomingCallOffer = signalData.sdp;
+            incomingCallNotification.classList.remove('hidden');
             statusDiv.textContent = "Incoming Call...";
             log('Incoming video call. Click Accept or Reject.', 'system');
-            updateVideoCallButtonsState(); // Update buttons for incoming call
-
+            updateVideoCallButtonsState();
         } else if (signalData.type === 'answer') {
             if (rtcPeerConnection && rtcPeerConnection.localDescription.type === 'offer') {
                 try {
@@ -1520,7 +1566,7 @@
                     hangUp();
                 }
             } else {
-                console.warn("Received answer but not expecting one or RTCPeerConnection not initialized as initiator.", signalData);
+                console.warn("Received answer but not expecting one.", signalData);
             }
         } else if (signalData.type === 'candidate') {
             if (rtcPeerConnection) {
@@ -1537,67 +1583,148 @@
 
     function hangUp() {
         if (rtcPeerConnection) {
-            // Notify peer that call is ending
             if (peer && peer.connected) {
                 sendPacket({ type: 'call-ended' });
             }
             rtcPeerConnection.close();
             rtcPeerConnection = null;
         }
-
         if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
             localStream = null;
         }
-        
         localVideo.srcObject = null;
         remoteVideo.srcObject = null;
-        
-        incomingCallNotification.classList.add('hidden'); // Ensure notification is hidden
-        incomingCallOffer = null; // Clear any pending offer
-        
-        // This is the crucial line to hide the video UI and return to chat
+        incomingCallNotification.classList.add('hidden');
+        incomingCallOffer = null;
         videoCallContainer.classList.add('hidden'); 
-        
-        updateVideoCallButtonsState(); // Re-enable start camera, disable offer/answer
+        updateVideoCallButtonsState();
     }
 
     hangupButton.onclick = hangUp;
 
-    // Auto-resize textarea
-    document.getElementById('message').addEventListener('input', (e) => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
+    document.getElementById('message').addEventListener('input', () => {
+        if (typingTimer) return;
+        sendPacket({ type: 'typing' });
+        typingTimer = setTimeout(() => {
+            typingTimer = null;
+        }, 1200);
+    });
 
-    // Function to update the peer's connection status display
     function updatePeerStatus(statusText, isOnline) {
-        if (!peerStatusElement) return; // Guard against element not existing
+        clearTimeout(peerTypingTimer);
+        if (!peerStatusElement) return;
+        
         peerStatusElement.textContent = statusText;
-        // Update the class based on online/offline state for color/dot
         if (isOnline) {
             peerStatusElement.className = 'text-sm font-semibold text-green-500 flex items-center';
-            peerStatusElement.innerHTML = '<span class="h-2 w-2 bg-green-500 rounded-full mr-1"></span>' + statusText;
+            peerStatusElement.innerHTML = `<span class="h-2 w-2 bg-green-500 rounded-full mr-1"></span>${statusText}`;
         } else {
             peerStatusElement.className = 'text-sm font-semibold text-gray-500 flex items-center';
-            peerStatusElement.innerHTML = '<span class="h-2 w-2 bg-gray-500 rounded-full mr-1"></span>' + statusText;
+            peerStatusElement.innerHTML = `<span class="h-2 w-2 bg-gray-500 rounded-full mr-1"></span>${statusText}`;
         }
     }
 
     // --- Reply Functions ---
-    function prepareReply(messageId, contentSnippet) {
-        currentReplyTo = { id: messageId, contentSnippet: contentSnippet };
-        replyContentSnippet.innerHTML = contentSnippet; // Use innerHTML as snippet might contain <br>
-        replyPreview.classList.remove('hidden');
-        document.getElementById('message').focus(); // Focus on input after preparing reply
+    /**
+     * Creates a thumbnail from a video source URL.
+     * @param {string} videoSrc - The source URL of the video.
+     * @returns {Promise<string>} A promise that resolves with the data URL of the thumbnail.
+     */
+    function createVideoThumbnail(videoSrc) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.crossOrigin = "anonymous";
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            video.onloadeddata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg'));
+                video.remove();
+                canvas.remove();
+            };
+
+            video.onerror = (e) => {
+                reject(new Error("Failed to load video for thumbnail generation."));
+                video.remove();
+                canvas.remove();
+            };
+
+            video.src = videoSrc;
+        });
     }
+
+    async function prepareReply(messageId) {
+        const originalMessage = chatMessages.find(msg => msg.id === messageId);
+        if (!originalMessage) {
+            log('Cannot reply to a message that is no longer in chat history.', 'system');
+            return;
+        }
+        const replyPreviewContent = document.querySelector('#replyPreview .content');
+        if (!replyPreviewContent) return;
+
+        let snippetHTML;
+        let snippetForPacket;
+
+        if (originalMessage.content.includes('<video')) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = originalMessage.content;
+            const videoSrc = tempDiv.querySelector('video')?.src;
+            if (videoSrc) {
+                try {
+                    const videoThumbnailUrl = await createVideoThumbnail(videoSrc);
+                    snippetHTML = `<img src="${videoThumbnailUrl}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px; margin-right: 8px;"> <span>Video</span>`;
+                    snippetForPacket = '📹 Video';
+                } catch (error) {
+                    console.error("Failed to create video thumbnail for reply:", error);
+                    snippetHTML = '🎬 Video';
+                    snippetForPacket = '🎬 Video';
+                }
+            } else {
+                snippetHTML = 'Media File';
+                snippetForPacket = '📎 Media';
+            }
+        } else if (originalMessage.content.includes('<img')) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = originalMessage.content;
+            const imgSrc = tempDiv.querySelector('img')?.src;
+            if (imgSrc) {
+                snippetHTML = `<img src="${imgSrc}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px; margin-right: 8px;"> <span>Image / Sticker</span>`;
+                snippetForPacket = '📷 Image';
+            } else {
+                snippetHTML = 'Media File';
+                snippetForPacket = '📎 Media';
+            }
+        } else if (originalMessage.type === 'voice-message') {
+             snippetHTML = `🎤 Voice Message`;
+             snippetForPacket = `🎤 Voice Message`;
+        } else {
+            const textContent = originalMessage.content.replace(/<br>/g, ' ').replace(/<button.*?<\/button>/g, '').trim();
+            snippetForPacket = textContent.substring(0, 50) + (textContent.length > 50 ? '...' : '');
+            snippetHTML = snippetForPacket;
+        }
+
+        currentReplyTo = { id: messageId, contentSnippet: snippetForPacket };
+        replyPreviewContent.innerHTML = `Replying to: ${snippetHTML}`;
+        replyPreview.classList.remove('hidden');
+        document.getElementById('message').focus();
+    }
+
 
     function cancelReply() {
         currentReplyTo = null;
-        replyContentSnippet.textContent = '';
+        const replyPreviewContent = document.querySelector('#replyPreview .content');
+        if(replyPreviewContent) {
+            replyPreviewContent.innerHTML = `Replying to: <span id="replyContentSnippet" class="font-semibold text-gray-800 dark:text-gray-200"></span>`;
+        }
         replyPreview.classList.add('hidden');
     }
 
 
     // --- Sticker Functions ---
-
     function areStickersEqual(s1, s2) {
         return s1.type === s2.type && s1.content === s2.content;
     }
@@ -1607,8 +1734,7 @@
         if (storedStickers) {
             try {
                 userCustomStickers = JSON.parse(storedStickers);
-                // Filter out any invalid or duplicate stickers and ensure type/content are present
-                userCustomStickers = userCustomStickers.filter(s => s.type && s.content && s.type === 'image'); // Only persist image URLs
+                userCustomStickers = userCustomStickers.filter(s => s.type && s.content && s.type === 'image');
             } catch (e) {
                 console.error("Error parsing custom stickers from localStorage:", e);
                 userCustomStickers = [];
@@ -1621,23 +1747,15 @@
     }
 
     function addCustomSticker(stickerObject) {
-        // Only track image stickers as "custom" in localStorage for now
-        // Emoji stickers are static predefined and don't need "recency" tracking in this way.
         if (stickerObject.type === 'image') {
-            // Remove if already exists to move to front (for recency)
             userCustomStickers = userCustomStickers.filter(s => !areStickersEqual(s, stickerObject));
-            
-            // Add the new sticker to the beginning of the array
             userCustomStickers.unshift(stickerObject);
-
-            // Keep only the last MAX_RECENT_STICKERS
             if (userCustomStickers.length > MAX_RECENT_STICKERS) {
                 userCustomStickers = userCustomStickers.slice(0, MAX_RECENT_STICKERS);
             }
             saveCustomStickers();
-            renderStickerPickerContent(); // Re-render the sticker picker to show updated recents
+            renderStickerPickerContent();
         } else if (stickerObject.type === 'emoji') {
-            // For emojis, we still want to re-render to update their "recent" position
             renderStickerPickerContent();
         }
     }
@@ -1645,21 +1763,16 @@
     function clearCustomStickers() {
         userCustomStickers = [];
         saveCustomStickers();
-        renderStickerPickerContent(); // Update the UI
+        renderStickerPickerContent();
         log('Your custom sticker collection has been cleared.', 'system');
     }
 
     function renderStickerPickerContent() {
-        allStickersGrid.innerHTML = ''; // Clear the current grid
-
+        allStickersGrid.innerHTML = '';
         let allStickersToDisplay = [];
-
-        // 1. Add user-added custom stickers first (these are already ordered by recency)
         userCustomStickers.forEach(sticker => {
             allStickersToDisplay.push(sticker);
         });
-
-        // 2. Add predefined stickers, but only if they are not already in the userCustomStickers (to avoid duplicates)
         predefinedStickers.forEach(predefined => {
             const isDuplicate = allStickersToDisplay.some(existing => areStickersEqual(existing, predefined));
             if (!isDuplicate) {
@@ -1667,11 +1780,10 @@
             }
         });
         
-        // 3. Render all stickers from the consolidated list
         if (allStickersToDisplay.length > 0) {
             allStickersToDisplay.forEach(sticker => {
                 const stickerItem = document.createElement('div');
-                stickerItem.className = 'sticker-item group'; // Add group for hover effect on remove button
+                stickerItem.className = 'sticker-item group';
                 stickerItem.onclick = () => sendSticker(sticker); 
 
                 if (sticker.type === 'emoji') {
@@ -1683,40 +1795,37 @@
                     img.style.width = '40px';
                     img.style.height = '40px';
                     img.style.objectFit = 'contain';
-                    // Optional: Add an error handler for broken image URLs
                     img.onerror = function() {
-                        this.onerror = null; // Prevent infinite loops
-                        this.src = 'https://placehold.co/40x40/cccccc/000000?text=ERR'; // Placeholder for broken image
+                        this.onerror = null;
+                        this.src = 'https://placehold.co/40x40/cccccc/000000?text=ERR';
                         this.alt = 'Broken Sticker Image';
                         console.warn(`Could not load sticker image: ${sticker.content}`);
                     };
                     stickerItem.appendChild(img);
                 }
                 
-                // Add remove button only for user-added custom image stickers
                 const isUserCustomSticker = userCustomStickers.some(s => areStickersEqual(s, sticker));
                 if (isUserCustomSticker) {
                     const removeBtn = document.createElement('button');
-                    removeBtn.className = 'remove-btn hidden group-hover:block'; // Show on hover
+                    removeBtn.className = 'remove-btn hidden group-hover:block';
                     removeBtn.textContent = '×';
                     removeBtn.onclick = (e) => {
-                        e.stopPropagation(); // Prevent sending sticker when clicking remove
+                        e.stopPropagation();
                         removeCustomSticker(sticker);
                     };
                     stickerItem.appendChild(removeBtn);
                 }
-
                 allStickersGrid.appendChild(stickerItem);
             });
         } else {
-            allStickersGrid.innerHTML = '<div class="text-center text-sm text-gray-500 col-span-full">No stickers available. Add one using the URL input above or refresh for default stickers.</div>';
+            allStickersGrid.innerHTML = '<div class="text-center text-sm text-gray-500 col-span-full">No stickers available.</div>';
         }
     }
 
     function removeCustomSticker(stickerObjectToRemove) {
         userCustomStickers = userCustomStickers.filter(s => !areStickersEqual(s, stickerObjectToRemove));
         saveCustomStickers();
-        renderStickerPickerContent(); // Re-render the picker
+        renderStickerPickerContent();
         log('Custom sticker removed.', 'system');
     }
 
@@ -1724,8 +1833,8 @@
     function toggleStickerPicker() {
         if (stickerPicker.classList.contains('hidden')) {
             stickerPicker.classList.remove('hidden');
-            stickerPicker.style.display = 'flex'; // Use flex display
-            renderStickerPickerContent(); // Render content whenever picker is shown
+            stickerPicker.style.display = 'flex';
+            renderStickerPickerContent();
         } else {
             stickerPicker.classList.add('hidden');
             stickerPicker.style.display = 'none';
@@ -1741,28 +1850,25 @@
             log('A file or sticker transfer is already in progress. Please wait.', 'system');
             return;
         }
-
         if (!stickerObject || !stickerObject.type || !stickerObject.content) {
             console.error("Invalid sticker object to send:", stickerObject);
             log('Error sending sticker: Invalid format.', 'system');
             return;
         }
 
-        // Add to custom stickers (which also updates recency) if it's an image.
-        // Emojis are not added to custom stickers.
         if (stickerObject.type === 'image') {
             addCustomSticker(stickerObject); 
         }
 
         const messageId = `sticker-${stickerObject.type}-${Date.now()}`;
         const messageToSend = {
-            type: 'sticker', // All stickers use 'sticker' type for sending
-            content: stickerObject, // The sticker object itself
+            type: 'sticker',
+            content: stickerObject,
             id: messageId
         };
 
         if (currentReplyTo) {
-            messageToSend.replyTo = { ...currentReplyTo }; // Include reply info
+            messageToSend.replyTo = { ...currentReplyTo };
         }
 
         if (await sendPacket(messageToSend)) {
@@ -1772,9 +1878,9 @@
             } else if (stickerObject.type === 'image') {
                 sentHtml = `<span class="sticker-message"><img src="${stickerObject.content}" alt="Sticker"></span>`;
             }
-            log(sentHtml, 'sent', messageId, currentReplyTo); // Pass replyTo
-            toggleStickerPicker(); // Hide picker after sending
-            cancelReply(); // Clear reply context after sending
+            log(sentHtml, 'sent', messageId, currentReplyTo);
+            toggleStickerPicker();
+            cancelReply();
         } else {
             log(`Could not send sticker.`, 'system');
         }
@@ -1782,7 +1888,7 @@
 
     function addCustomStickerUrl() {
         const url = customStickerUrlInput.value.trim();
-        customStickerUrlError.classList.add('hidden'); // Hide previous error
+        customStickerUrlError.classList.add('hidden');
 
         if (!url) {
             customStickerUrlError.textContent = 'Please enter a URL.';
@@ -1790,7 +1896,6 @@
             return;
         }
 
-        // Basic URL validation
         try {
             new URL(url);
         } catch (e) {
@@ -1799,7 +1904,6 @@
             return;
         }
 
-        // Optional: Check for image extension, but actual loading will validate
         const lowerCaseUrl = url.toLowerCase();
         if (!lowerCaseUrl.endsWith('.gif') && !lowerCaseUrl.endsWith('.webp') &&
             !lowerCaseUrl.endsWith('.png') && !lowerCaseUrl.endsWith('.jpg') &&
@@ -1809,17 +1913,16 @@
         }
 
         const newSticker = { type: 'image', content: url };
-        addCustomSticker(newSticker); // Add to custom stickers (which handles recency and persistence)
-        customStickerUrlInput.value = ''; // Clear input
+        addCustomSticker(newSticker);
+        customStickerUrlInput.value = '';
         log(`Custom sticker URL added: ${url}`, 'system');
     }
 
-    // New function to handle saving a received sticker
     function saveReceivedSticker(buttonElement, encodedSticker) {
         try {
             const stickerToSave = JSON.parse(atob(encodedSticker));
-            addCustomSticker(stickerToSave); // This adds to localStorage and re-renders the picker
-            buttonElement.remove(); // Remove the button after saving
+            addCustomSticker(stickerToSave);
+            buttonElement.remove();
             log(`Sticker saved to your collection!`, 'system');
         } catch (e) {
             console.error("Error saving received sticker:", e);
@@ -1832,7 +1935,6 @@
         if (!sendingImageSticker.id || sendingImageSticker.currentIndex > sendingImageSticker.lastAck + 1) return;
 
         if (sendingImageSticker.currentIndex >= sendingImageSticker.chunks.length) {
-            // All chunks sent and acknowledged (this logic would only be hit if we were chunking actual data, not URLs)
             const sentHtml = `<span class="sticker-message"><img src="${sendingImageSticker.dataUrl}" alt="Sticker"></span>`;
             log(sentHtml, 'sent', sendingImageSticker.id);
             setTimeout(() => {
@@ -1874,23 +1976,21 @@
         if (receivingImageSticker.id !== message.id) return;
 
         receivingImageSticker.parts[message.index] = message.chunk;
-        receivingImageSticker.receivedSize += atob(message.chunk).length; // Calculate size from base64 length
+        receivingImageSticker.receivedSize += atob(message.chunk).length;
 
         document.getElementById('progressBar').style.width =
             `${(receivingImageSticker.receivedSize / receivingImageSticker.size) * 100}%`;
         
         await sendPacket({ type: 'image-sticker-ack', id: message.id, index: message.index });
 
-        if (receivingImageSticker.receivedSize >= receivingImageSticker.size) { // Use >= for robustness
+        if (receivingImageSticker.receivedSize >= receivingImageSticker.size) {
             const fullDataUrl = `data:${receivingImageSticker.fileType};base64,${receivingImageSticker.parts.join('')}`;
             
-            // Removed save button logic as custom stickers are removed
             const receivedHtml = `<span class="sticker-message"><img src="${fullDataUrl}" alt="Sticker"></span>`;
             log(receivedHtml, 'received', receivingImageSticker.id);
-            // Add received image sticker to custom stickers (which also updates recency)
-            addCustomSticker({ type: 'image', content: fullDataUrl }); // Store dataURL for received image stickers
+            addCustomSticker({ type: 'image', content: fullDataUrl });
             
-            receivingImageSticker = {}; // Clear receiving state
+            receivingImageSticker = {};
             setTimeout(() => {
                 document.getElementById('progressContainer').style.display = 'none';
                 document.getElementById('cancelFileBtn').classList.add('hidden');
@@ -1917,23 +2017,113 @@
         document.getElementById('progressLabel').textContent = '';
     }
 
-    // Modify the unified cancel button to handle both file and image sticker transfers
+    // --- Voice Message Functions ---
+    const recordButton = document.getElementById('recordButton');
+    const recordingIndicator = document.getElementById('recordingIndicator');
+    const recordingTimer = document.getElementById('recordingTimer');
+
+    // MODIFICATION: Re-architected voice recording to fix stream closing issue.
+    async function startRecording() {
+        if (!peer || !peer.connected) {
+            log('Please connect to a peer first.', 'system');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            const mimeTypes = [
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/ogg;codecs=opus',
+                'audio/mp4' // For Safari compatibility
+            ];
+            const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+            console.log("Using MIME type for recording:", supportedMimeType || "browser default");
+            
+            mediaRecorder = new MediaRecorder(stream, { mimeType: supportedMimeType });
+            audioChunks = [];
+
+            mediaRecorder.addEventListener("dataavailable", event => {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", async () => {
+                // Stop the stream tracks here to release the microphone. This is the fix.
+                stream.getTracks().forEach(track => track.stop());
+
+                const mimeType = mediaRecorder.mimeType || 'audio/webm';
+                const audioBlob = new Blob(audioChunks, { type: mimeType });
+
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    const messageId = `voice-${Date.now()}`;
+                    const messageToSend = {
+                        type: 'voice-message',
+                        chunk: base64Audio,
+                        mimeType: mimeType, 
+                        id: messageId,
+                        replyTo: currentReplyTo
+                    };
+                    if (await sendPacket(messageToSend)) {
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        const audioPlayer = `<div class="voice-message-player"><audio controls src="${audioUrl}"></audio></div>`;
+                        log(audioPlayer, 'sent', messageId, currentReplyTo);
+                        cancelReply();
+                    }
+                };
+            });
+
+            mediaRecorder.start();
+            recordButton.classList.add('recording');
+            recordingIndicator.style.display = 'flex';
+            let seconds = 0;
+            recordingTimer.textContent = '00:00';
+            recordingTimerInterval = setInterval(() => {
+                seconds++;
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                recordingTimer.textContent = `${min}:${sec}`;
+            }, 1000);
+
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            log('Microphone access denied. Please allow microphone permissions in your browser.', 'system');
+        }
+    }
+
+    // MODIFICATION: Simplified stopRecording as logic is now in the 'stop' event listener.
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+        recordButton.classList.remove('recording');
+        recordingIndicator.style.display = 'none';
+        clearInterval(recordingTimerInterval);
+    }
+
+    recordButton.addEventListener('mousedown', startRecording);
+    recordButton.addEventListener('mouseup', stopRecording);
+    recordButton.addEventListener('touchstart', startRecording, { passive: true });
+    recordButton.addEventListener('touchend', stopRecording);
+
+
     document.getElementById('cancelFileBtn').onclick = () => {
-        // Check which transfer is active and cancel it
-        if (sendingFile.id || receivingFile.id) {
+        if (sendingFile.id || receivingFile.id || fileSendQueue.length > 0) {
             cancelFileTransfer(true);
         } else if (sendingImageSticker.id || receivingImageSticker.id) {
             cancelImageStickerTransfer(true);
         }
     };
     
-    // Function to enumerate all video input devices
     async function enumerateCameras() {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             availableCameras = devices.filter(device => device.kind === 'videoinput');
             console.log('Available cameras:', availableCameras);
-            updateVideoCallButtonsState(); // Update state based on camera availability
+            updateVideoCallButtonsState();
         } catch (error) {
             console.error('Error enumerating devices:', error);
             log('Could not access camera devices info.', 'system');
@@ -1941,34 +2131,25 @@
     }
 
 
-    // Initial load of theme and persisted connection data
     document.addEventListener('DOMContentLoaded', async () => {
-        // Removed: localStorage.getItem('theme') and related theme loading.
-        // Default to 'light'
         document.body.classList.add('light');
         currentThemeIndex = 0;
 
-        // Load custom chat background from localStorage
         const savedChatBackground = localStorage.getItem('chatBackground');
         if (savedChatBackground) {
             applyChatBackground(savedChatBackground);
         }
 
-        loadCustomStickers(); // Load custom stickers
-        renderStickerPickerContent(); // Render all sticker picker content on load
+        loadCustomStickers();
+        renderStickerPickerContent();
         
-        // Removed: All localStorage.getItem for savedKey, savedLocalSignal, savedPeerSignal
-        // Removed: All auto-reconnect logic.
-        // The setup screen will always be shown initially.
         logToSetup('Enter a shared secret to begin.');
         updatePeerStatus('Offline', false);
         
-        // Enumerate cameras on page load
         await enumerateCameras();
-        // Also listen for device changes (e.g., camera plugged/unplugged)
         navigator.mediaDevices.ondevicechange = enumerateCameras;
 
-        updateVideoCallButtonsState(); // Initial state of call buttons
+        updateVideoCallButtonsState();
     });
 
   </script>
