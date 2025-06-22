@@ -6,6 +6,7 @@
   <title>Encrypted P2P Chat & Call</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <style>
     /* Base Chat Backgrounds & General Colors */
     body.light { background-color: #f0f0f0; color: #212121; } /* Changed text color to a darker shade */
@@ -396,27 +397,6 @@
     .dark .replied-message-content {
         border-left-color: #666;
     }
-
-    /* MODIFICATION: Voice Message Styles */
-    #recordButton.recording {
-        color: #ef4444; /* Red color when recording */
-        animation: pulse-red 1.5s infinite;
-    }
-    @keyframes pulse-red {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-    }
-    .voice-message-player {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 250px;
-    }
-    .voice-message-player audio {
-        width: 100%;
-        height: 30px;
-    }
   </style>
 </head>
 <body>
@@ -486,18 +466,27 @@
     </div>
 
     <footer class="p-2 flex flex-col space-y-2 relative">
-        <!-- MODIFICATION: Added recording status indicator -->
-        <div id="recordingIndicator" class="hidden items-center justify-center p-2">
-            <span class="h-3 w-3 bg-red-500 rounded-full animate-pulse mr-2"></span>
-            <span id="recordingTimer" class="text-sm text-gray-600 dark:text-gray-400">00:00</span>
-        </div>
-
         <!-- Reply Preview Section -->
         <div id="replyPreview" class="reply-preview hidden">
             <div class="content flex-grow">
                 Replying to: <span id="replyContentSnippet" class="font-semibold text-gray-800 dark:text-gray-200"></span>
             </div>
             <button class="cancel-btn" onclick="cancelReply()">&times;</button>
+        </div>
+
+        <!-- Voice Message Controls -->
+        <div class="voice-message-controls flex items-center justify-center space-x-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg hidden">
+            <button id="recordVoiceBtn" class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full flex items-center justify-center w-10 h-10">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <!-- Removed stopRecordVoiceBtn from HTML -->
+            <audio id="audioPlayback" controls class="flex-grow hidden"></audio>
+            <button id="sendVoiceMsgBtn" class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full flex items-center justify-center w-10 h-10 hidden">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+            <button id="cancelVoiceMsgBtn" class="bg-gray-500 hover:bg-gray-600 text-white p-2 rounded-full flex items-center justify-center w-10 h-10 hidden">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <div class="flex items-center space-x-2">
@@ -516,12 +505,10 @@
             </button>
             <textarea id="message" placeholder="Type a message" class="flex-grow p-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
             
-            <!-- MODIFICATION: Added microphone button for voice messages -->
-            <button id="recordButton" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600" title="Record Voice Message">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0a5 5 0 01-4.52 4.97A5.002 5.002 0 015 8a1 1 0 00-2 0a7.001 7.001 0 006 6.93V17H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" />
-                </svg>
+            <button id="toggleVoiceInput" class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full flex items-center justify-center w-10 h-10">
+                <i class="fas fa-microphone"></i>
             </button>
+            
             <button onclick="sendMessage()" class="p-2 rounded-full text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
             </button>
@@ -586,12 +573,7 @@
     const MAX_MESSAGES = 100; // Limit for messages in current session
     const CHUNK_SIZE = 64 * 1024; // 64 KB for file chunks and image sticker chunks
     let fileReader = null; // Reference to FileReader for cancellation
-    let fileSendQueue = [];
-
-    // MODIFICATION: Voice Message variables
-    let mediaRecorder;
-    let audioChunks = [];
-    let recordingTimerInterval;
+    let fileSendQueue = []; // Queue for multiple file sends
 
     // Define the themes and their names
     const themes = ['light', 'dark', 'theme-3', 'theme-4'];
@@ -638,18 +620,6 @@
         { type: 'image', content: 'https://media.tenor.com/oWTGv7XpHY4AAAAm/sseeyall-bubu-dudu.webp' },
         { type: 'image', content: 'https://media.tenor.com/KNiXTCA36YYAAAAm/bubu-dudu-sseeyall.webp' },
         { type: 'image', content: 'https://media.tenor.com/BvlQdl0TAeIAAAAm/cute.webp' },
-         { type: 'image', content: 'https://media.tenor.com/90xN7I6NjecAAAAm/bubu-dudu-sseeyall.webp' },
-        { type: 'image', content: 'https://media.tenor.com/vJRHkcdlEQQAAAAm/casal-dudu.webp' },
-        { type: 'image', content: 'https://media.tenor.com/aMOxt0o16TQAAAAm/bubu-bubu-dudu.webp' },
-         { type: 'image', content: 'https://media.tenor.com/F9Q3thp6tzUAAAAm/bubu-bubu-dudu.webp' },
-        { type: 'image', content: 'https://media.tenor.com/HOLG_hTN8WsAAAAm/bubu-jumping-on-dudu-happy.webp' },
-        { type: 'image', content: 'https://media.tenor.com/I_rw0vcOXJYAAAAm/dudu-bubu-cute-kiss.webp' },
-         { type: 'image', content: 'https://media.tenor.com/hoblaIrKqRgAAAAm/bubu-dudu.webp' },
-        { type: 'image', content: 'https://media.tenor.com/tW4jk2HaN3YAAAAm/bubu-dudu.webp' },
-        { type: 'image', content: 'https://media.tenor.com/uRyi-tc_AdAAAAAm/bubu-dudu.webp' },
-         { type: 'image', content: 'https://media.tenor.com/PXKZhCEfEfsAAAAm/bubu-bubu-dudu.webp' },
-        { type: 'image', content: 'https://media.tenor.com/qZTZ0zYcB9YAAAAm/bubu-dudu-sseeyall.webp' },
-        { type: 'image', content: 'https://media.tenor.com/BKP6erkQWjMAAAAm/bubu-dudu-sseeyall.webp' },
     ];
     let userCustomStickers = [];
     const MAX_RECENT_STICKERS = 6;
@@ -658,6 +628,22 @@
     const allStickersGrid = document.getElementById('allStickersGrid');
     const customStickerUrlInput = document.getElementById('customStickerUrlInput');
     const customStickerUrlError = document.getElementById('customStickerUrlError');
+
+    // Voice Message variables
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioBlob;
+    let audioContext;
+    let audioSource; // To store the MediaStreamAudioSourceNode for microphone input
+
+    const recordVoiceBtn = document.getElementById('recordVoiceBtn');
+    // Removed stopRecordVoiceBtn variable
+
+    const sendVoiceMsgBtn = document.getElementById('sendVoiceMsgBtn');
+    const cancelVoiceMsgBtn = document.getElementById('cancelVoiceMsgBtn');
+    const audioPlayback = document.getElementById('audioPlayback');
+    const voiceMessageControls = document.querySelector('.voice-message-controls');
+    const toggleVoiceInput = document.getElementById('toggleVoiceInput');
 
 
     // --- UTILITY & SETUP ---
@@ -783,7 +769,7 @@
         const chatBox = document.getElementById('chatBox');
         const div = document.createElement('div');
 
-        if ((type === 'sent' || type === 'received' || type === 'voice-message') && msgId) {
+        if ((type === 'sent' || type === 'received') && msgId) {
             chatMessages.push({ id: msgId, content: content, type: type });
             if (chatMessages.length > MAX_MESSAGES) {
                 chatMessages.shift();
@@ -811,7 +797,7 @@
 
             bubble.className = 'message-bubble relative max-w-md md:max-lg px-3 py-2 rounded-lg shadow group';
 
-            if (type === 'sent' || (type === 'voice-message' && content.includes('sent'))) {
+            if (type === 'sent') {
                 div.className = 'flex justify-end mb-2';
                 bubble.classList.add('sent-bubble');
             } else {
@@ -825,7 +811,7 @@
             actionsContainer.className = 'message-actions';
             let hasActions = false;
 
-            if (type !== 'view-once-text' && !content.includes('View-Once Media')) {
+            if (type !== 'view-once-text' && !content.includes('View-Once Media') && !content.includes('audio controls')) { // Exclude audio messages from reply
                 const replyButton = document.createElement('button');
                 replyButton.className = 'action-button reply-btn';
                 replyButton.innerHTML = '&#x21A9;'; // Reply arrow
@@ -838,7 +824,7 @@
                 hasActions = true;
             }
 
-            if (type === 'sent' || (type === 'voice-message' && content.includes('sent'))) {
+            if (type === 'sent') {
                 const deleteButton = document.createElement('button');
                 deleteButton.className = 'action-button delete-btn';
                 deleteButton.innerHTML = '&times;'; // 'X' symbol
@@ -900,6 +886,7 @@
           hangUp(); 
           cancelFileTransfer(false);
           cancelImageStickerTransfer(false);
+          cancelVoiceMessageTransfer(false); // Also cancel voice message transfer
       }); 
       peer.on('close', () => { 
           log('Connection closed.', 'system'); 
@@ -907,25 +894,27 @@
           hangUp();
           cancelFileTransfer(false);
           cancelImageStickerTransfer(false);
+          cancelVoiceMessageTransfer(false); // Also cancel voice message transfer
       });
       peer.on('data', async data => {
         try {
-          if (!aesKey) { aesKey = await deriveKey(document.getElementById('sharedKey').value); }
-          const decrypted = await decrypt(data);
-          const message = JSON.parse(decrypted);
+          // Attempt to decrypt and parse as JSON first
+          let message;
+          try {
+            const decrypted = await decrypt(data);
+            message = JSON.parse(decrypted);
+          } catch (e) {
+            console.warn('Received non-JSON or undecryptable data:', e);
+            // If it's not JSON, it might be raw binary data (e.g., from an older direct send).
+            // For now, we expect all data to be encrypted JSON.
+            // If you later implement direct binary sends without JSON wrapper, handle them here.
+            return; 
+          }
 
           // --- MESSAGE HANDLER ---
           switch (message.type) {
               case 'text':
                   log(message.content, 'received', message.id, message.replyTo);
-                  break;
-              // VOICE MESSAGE FIX: Use mimeType from message for better compatibility
-              case 'voice-message':
-                  const blobType = message.mimeType || 'audio/webm'; // Fallback for old messages
-                  const audioBlob = new Blob([Uint8Array.from(atob(message.chunk), c => c.charCodeAt(0))], { type: blobType });
-                  const audioUrl = URL.createObjectURL(audioBlob);
-                  const audioPlayer = `<div class="voice-message-player"><audio controls src="${audioUrl}"></audio></div>`;
-                  log(audioPlayer, 'received', message.id, message.replyTo);
                   break;
               case 'typing':
                   if (peerStatusElement.textContent.includes('Online')) {
@@ -1031,6 +1020,18 @@
                       document.getElementById('cancelFileBtn').classList.add('hidden');
                   }
                   break;
+              case 'voice_message':
+                  const base64AudioData = message.data; // This will now be the Base64 string
+                  const mimeType = message.mimeType;
+                  // Decode Base64 string back to ArrayBuffer
+                  const binaryAudioData = Uint8Array.from(atob(base64AudioData), c => c.charCodeAt(0)).buffer;
+
+                  const receivedAudioBlob = new Blob([binaryAudioData], { type: mimeType });
+                  const receivedAudioUrl = URL.createObjectURL(receivedAudioBlob);
+
+                  const audioPlayerHTML = `<audio controls src="${receivedAudioUrl}" class="mt-2"></audio>`;
+                  log(audioPlayerHTML, 'received', message.id, message.replyTo);
+                  break;
           }
         } catch(e) { console.error(e); log('Failed to process message.', 'system'); }
       });
@@ -1040,6 +1041,13 @@
         if (!peer || !peer.connected) { return false; } 
         if (!aesKey) { aesKey = await deriveKey(document.getElementById('sharedKey').value); } 
         try { 
+            // Convert ArrayBuffer data to Base64 for sending within the encrypted JSON
+            if (message.type === 'voice_message' && message.data instanceof ArrayBuffer) {
+                // Convert ArrayBuffer to Base64 string
+                const base64Audio = btoa(String.fromCharCode(...new Uint8Array(message.data)));
+                message.data = base64Audio; // Replace ArrayBuffer with Base64 string
+            }
+            // All messages are now JSON stringified, then encrypted
             peer.send(await encrypt(JSON.stringify(message))); 
             return true; 
         } catch (err) { 
@@ -1177,7 +1185,7 @@
             fileSendQueue.push(file);
         }
 
-        if (!sendingFile.id && !sendingImageSticker.id) {
+        if (!sendingFile.id && !sendingImageSticker.id && (!mediaRecorder || mediaRecorder.state === 'inactive')) {
             startNextFileTransfer();
         }
         event.target.value = null; 
@@ -1194,8 +1202,8 @@
 
         const file = fileSendQueue[0];
 
-        if (sendingFile.id || sendingImageSticker.id) {
-            log('A transfer is already in progress.', 'system');
+        if (sendingFile.id || sendingImageSticker.id || (mediaRecorder && mediaRecorder.state === 'recording')) {
+            log('A transfer or recording is already in progress.', 'system');
             return;
         }
         
@@ -1698,9 +1706,9 @@
                 snippetHTML = 'Media File';
                 snippetForPacket = '📎 Media';
             }
-        } else if (originalMessage.type === 'voice-message') {
-             snippetHTML = `🎤 Voice Message`;
-             snippetForPacket = `🎤 Voice Message`;
+        } else if (originalMessage.content.includes('<audio')) { // Handle audio messages for reply
+            snippetHTML = `🎧 Voice Message`;
+            snippetForPacket = '🎧 Voice Message';
         } else {
             const textContent = originalMessage.content.replace(/<br>/g, ' ').replace(/<button.*?<\/button>/g, '').trim();
             snippetForPacket = textContent.substring(0, 50) + (textContent.length > 50 ? '...' : '');
@@ -1846,8 +1854,8 @@
             log('Not connected. Cannot send sticker.', 'system');
             return;
         }
-        if (sendingFile.id || sendingImageSticker.id) {
-            log('A file or sticker transfer is already in progress. Please wait.', 'system');
+        if (sendingFile.id || sendingImageSticker.id || (mediaRecorder && mediaRecorder.state === 'recording')) {
+            log('A file, sticker transfer, or voice recording is already in progress. Please wait.', 'system');
             return;
         }
         if (!stickerObject || !stickerObject.type || !stickerObject.content) {
@@ -2012,104 +2020,10 @@
         receivingImageSticker = {};
 
         document.getElementById('progressContainer').style.display = 'none';
-        document.getElementById('cancelFileBtn').classList.add('hidden');
         document.getElementById('progressBar').style.width = '0%';
         document.getElementById('progressLabel').textContent = '';
     }
-
-    // --- Voice Message Functions ---
-    const recordButton = document.getElementById('recordButton');
-    const recordingIndicator = document.getElementById('recordingIndicator');
-    const recordingTimer = document.getElementById('recordingTimer');
-
-    // MODIFICATION: Re-architected voice recording to fix stream closing issue.
-    async function startRecording() {
-        if (!peer || !peer.connected) {
-            log('Please connect to a peer first.', 'system');
-            return;
-        }
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            const mimeTypes = [
-                'audio/webm;codecs=opus',
-                'audio/webm',
-                'audio/ogg;codecs=opus',
-                'audio/mp4' // For Safari compatibility
-            ];
-            const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
-            console.log("Using MIME type for recording:", supportedMimeType || "browser default");
-            
-            mediaRecorder = new MediaRecorder(stream, { mimeType: supportedMimeType });
-            audioChunks = [];
-
-            mediaRecorder.addEventListener("dataavailable", event => {
-                audioChunks.push(event.data);
-            });
-
-            mediaRecorder.addEventListener("stop", async () => {
-                // Stop the stream tracks here to release the microphone. This is the fix.
-                stream.getTracks().forEach(track => track.stop());
-
-                const mimeType = mediaRecorder.mimeType || 'audio/webm';
-                const audioBlob = new Blob(audioChunks, { type: mimeType });
-
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = async () => {
-                    const base64Audio = reader.result.split(',')[1];
-                    const messageId = `voice-${Date.now()}`;
-                    const messageToSend = {
-                        type: 'voice-message',
-                        chunk: base64Audio,
-                        mimeType: mimeType, 
-                        id: messageId,
-                        replyTo: currentReplyTo
-                    };
-                    if (await sendPacket(messageToSend)) {
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        const audioPlayer = `<div class="voice-message-player"><audio controls src="${audioUrl}"></audio></div>`;
-                        log(audioPlayer, 'sent', messageId, currentReplyTo);
-                        cancelReply();
-                    }
-                };
-            });
-
-            mediaRecorder.start();
-            recordButton.classList.add('recording');
-            recordingIndicator.style.display = 'flex';
-            let seconds = 0;
-            recordingTimer.textContent = '00:00';
-            recordingTimerInterval = setInterval(() => {
-                seconds++;
-                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const sec = (seconds % 60).toString().padStart(2, '0');
-                recordingTimer.textContent = `${min}:${sec}`;
-            }, 1000);
-
-        } catch (err) {
-            console.error("Error accessing microphone:", err);
-            log('Microphone access denied. Please allow microphone permissions in your browser.', 'system');
-        }
-    }
-
-    // MODIFICATION: Simplified stopRecording as logic is now in the 'stop' event listener.
-    function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-        }
-        recordButton.classList.remove('recording');
-        recordingIndicator.style.display = 'none';
-        clearInterval(recordingTimerInterval);
-    }
-
-    recordButton.addEventListener('mousedown', startRecording);
-    recordButton.addEventListener('mouseup', stopRecording);
-    recordButton.addEventListener('touchstart', startRecording, { passive: true });
-    recordButton.addEventListener('touchend', stopRecording);
-
-
+    
     document.getElementById('cancelFileBtn').onclick = () => {
         if (sendingFile.id || receivingFile.id || fileSendQueue.length > 0) {
             cancelFileTransfer(true);
@@ -2128,6 +2042,180 @@
             console.error('Error enumerating devices:', error);
             log('Could not access camera devices info.', 'system');
         }
+    }
+
+    // --- Voice Message Functions ---
+    toggleVoiceInput.addEventListener('click', () => {
+        voiceMessageControls.classList.toggle('hidden');
+        document.getElementById('message').classList.toggle('hidden'); // Hide text input
+        document.querySelector('footer > .flex.items-center.space-x-2 > button:last-child').classList.toggle('hidden'); // Hide send message button
+        // Ensure regular send button is hidden when voice input is active, and vice versa
+        const regularSendButton = document.querySelector('footer > .flex.items-center.space-x-2 > button:last-child');
+        if (!voiceMessageControls.classList.contains('hidden')) {
+            regularSendButton.classList.add('hidden');
+        } else {
+            regularSendButton.classList.remove('hidden');
+        }
+    });
+
+    recordVoiceBtn.addEventListener('click', async () => {
+        // Get the icon element inside the button
+        const recordIcon = recordVoiceBtn.querySelector('i');
+
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            // START RECORDING
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioSource = audioContext.createMediaStreamSource(stream);
+
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { 'type' : 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayback.src = audioUrl;
+                    audioPlayback.classList.remove('hidden');
+                    sendVoiceMsgBtn.classList.remove('hidden');
+                    cancelVoiceMsgBtn.classList.remove('hidden');
+                    
+                    // Restore original record button state
+                    recordVoiceBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    recordVoiceBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                    recordIcon.classList.remove('fa-stop');
+                    recordIcon.classList.add('fa-microphone');
+
+                    stream.getTracks().forEach(track => track.stop());
+                    audioContext.close();
+                };
+
+                mediaRecorder.start();
+                log('Recording voice message...', 'system');
+                
+                // Change button to STOP state
+                recordVoiceBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                recordVoiceBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                recordIcon.classList.remove('fa-microphone');
+                recordIcon.classList.add('fa-stop');
+
+                audioPlayback.classList.add('hidden');
+                sendVoiceMsgBtn.classList.add('hidden');
+                cancelVoiceMsgBtn.classList.add('hidden');
+                
+                cancelReply();
+            } catch (err) {
+                console.error('Error accessing microphone for voice message: ', err);
+                let errorMessage = 'Could not access microphone for voice message.';
+                if (err.name) {
+                    errorMessage += ` Error: ${err.name}`;
+                }
+                if (err.message) {
+                    errorMessage += ` (${err.message})`;
+                }
+                log(errorMessage + '. Please check permissions and ensure no other application is using the microphone.', 'system');
+                resetVoiceMessageControls(); // Reset controls on error
+            }
+        } else if (mediaRecorder.state === 'recording') {
+            // STOP RECORDING
+            mediaRecorder.stop();
+            log('Recording stopped. Preview and send.', 'system');
+        }
+    });
+
+    // stopRecordVoiceBtn.addEventListener('click', ...) -- Removed as logic is merged into recordVoiceBtn
+
+    sendVoiceMsgBtn.addEventListener('click', async () => {
+        if (audioBlob) {
+            log('Sending voice message...', 'system');
+            const messageId = `voice-${Date.now()}`;
+            
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const arrayBuffer = reader.result;
+                const messageToSend = {
+                    type: 'voice_message',
+                    data: arrayBuffer, // Send as ArrayBuffer
+                    mimeType: audioBlob.type,
+                    id: messageId
+                };
+
+                if (currentReplyTo) {
+                    messageToSend.replyTo = { ...currentReplyTo };
+                }
+                
+                if (await sendPacket(messageToSend)) {
+                    const sentAudioHTML = `<audio controls src="${URL.createObjectURL(audioBlob)}" class="mt-2"></audio>`;
+                    log(sentAudioHTML, 'sent', messageId, currentReplyTo);
+                } else {
+                    log('Failed to send voice message.', 'system');
+                }
+                resetVoiceMessageControls();
+            };
+            reader.readAsArrayBuffer(audioBlob); // Read blob as ArrayBuffer for sending
+        }
+    });
+
+    cancelVoiceMsgBtn.addEventListener('click', () => {
+        log('Voice message cancelled.', 'system');
+        resetVoiceMessageControls();
+    });
+
+    function resetVoiceMessageControls() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop(); // Ensure recorder is stopped
+        }
+        if (audioSource && audioSource.mediaStream) {
+            audioSource.mediaStream.getTracks().forEach(track => track.stop()); // Stop microphone track
+        }
+        if (audioContext) {
+            audioContext.close(); // Close audio context
+        }
+        audioPlayback.src = '';
+        audioPlayback.classList.add('hidden');
+        
+        // Ensure record button is in initial state
+        recordVoiceBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+        recordVoiceBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        recordVoiceBtn.querySelector('i').classList.remove('fa-stop');
+        recordVoiceBtn.querySelector('i').classList.add('fa-microphone');
+        recordVoiceBtn.classList.remove('hidden'); // Ensure it's visible if voice controls are active
+
+        sendVoiceMsgBtn.classList.add('hidden');
+        cancelVoiceMsgBtn.classList.add('hidden');
+        audioChunks = [];
+        audioBlob = null;
+
+        // Restore original input visibility
+        voiceMessageControls.classList.add('hidden');
+        document.getElementById('message').classList.remove('hidden');
+        document.querySelector('footer > .flex.items-center.space-x-2 > button:last-child').classList.remove('hidden');
+    }
+
+    // New function to handle general transfer cancellation
+    function cancelAnyTransfer(shouldNotifyPeer) {
+        if (sendingFile.id || receivingFile.id || fileSendQueue.length > 0) {
+            cancelFileTransfer(shouldNotifyPeer);
+        } else if (sendingImageSticker.id || receivingImageSticker.id) {
+            cancelImageStickerTransfer(shouldNotifyPeer);
+        } else if (mediaRecorder && mediaRecorder.state === 'recording') {
+            cancelVoiceMessageTransfer(shouldNotifyPeer); // This will handle sending cancel signal if needed
+        }
+    }
+
+    function cancelVoiceMessageTransfer(shouldNotifyPeer) {
+        // Here, if you wanted to send a 'voice-cancel' signal, you would do it:
+        // if (shouldNotifyPeer && sendingVoiceMessageId) {
+        //     sendPacket({ type: 'voice-cancel', id: sendingVoiceMessageId });
+        //     log('Sending voice message cancelled.', 'system');
+        // }
+        // For now, we just reset local state
+        resetVoiceMessageControls();
+        log('Voice message recording cancelled.', 'system');
     }
 
 
