@@ -61,8 +61,8 @@
     /* Received Bubbles */
     .received-bubble { background-color: #ffffff; color: #212121; } /* Changed text color to a darker shade */
     .dark .received-bubble { background-color: #2a3942; color: #eee; } /* Default dark grey */
-    .theme-3 .received-bubble { background-color: #45819c; color: #212121; } /* Light blue for received */
-    body.theme-4 .received-bubble { background-color: #628638; color: #222; } /* Light yellow-green for received */
+    .theme-3 .received-bubble { background-color: #008aca; color: #212121; } /* Light blue for received */
+    body.theme-4 .received-bubble { background-color: #72a13c; color: #222; } /* Light yellow-green for received */
 
 
     /* Tail for Bubbles */
@@ -517,7 +517,7 @@
             </button>
             <textarea id="message" placeholder="Type a message" class="flex-grow p-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
             
-            <button id="toggleVoiceInput" class="text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 p-2 rounded-full flex items-center justify-center w-10 h-10">
+            <button id="toggleVoiceInput" class=" text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 p-2 rounded-full flex items-center justify-center w-10 h-10">
                 <i class="fas fa-microphone"></i>
             </button>
             
@@ -1319,13 +1319,18 @@
             });
 
             conn.on('close', () => {
-                log('Data connection from peer closed.', 'system');
+                log('Connection to peer closed.', 'system');
                 updatePeerStatus('Offline', false);
+                hangUp();
+                cancelFileTransfer(false);
+                cancelImageStickerTransfer(false);
+                cancelVoiceMessageTransfer(false);
             });
 
             conn.on('error', err => {
-                console.error('PeerJS incoming connection error:', err);
-                log('Incoming connection error.', 'system');
+                console.error('PeerJS data connection error:', err);
+                log('Data connection error. Please try starting a new connection.', 'system');
+                updatePeerStatus('Offline', false);
             });
       });
 
@@ -2387,9 +2392,20 @@
 
     // --- Voice Message Functions ---
     toggleVoiceInput.addEventListener('click', () => {
+        // Toggle visibility of voice message controls
+        const isVoiceControlsHiddenBeforeToggle = voiceMessageControls.classList.contains('hidden');
         voiceMessageControls.classList.toggle('hidden');
         document.getElementById('message').classList.toggle('hidden'); // Hide text input
         document.querySelector('footer > .flex.items-center.space-x-2 > button:last-child').classList.toggle('hidden'); // Hide send message button
+
+        // If voice controls just became visible, start recording
+        if (isVoiceControlsHiddenBeforeToggle) {
+            recordVoiceBtn.click(); // Simulate a click on the record button
+        } else {
+            // If voice controls just became hidden, ensure recording is stopped and reset
+            resetVoiceMessageControls();
+        }
+
         // Ensure regular send button is hidden when voice input is active, and vice versa
         const regularSendButton = document.querySelector('footer > .flex.items-center.space-x-2 > button:last-child');
         if (!voiceMessageControls.classList.contains('hidden')) {
