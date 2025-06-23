@@ -312,9 +312,9 @@
     /* Styles for Reply and Delete action buttons */
     .message-bubble {
         position: relative;
-        /* Added properties for text wrapping */
         word-wrap: break-word; /* Breaks long words that don't fit */
         white-space: pre-wrap; /* Preserves whitespace and wraps text */
+        /* No fixed height, let content define it naturally. Max-width is handled by Tailwind's max-w-md */
     }
     .message-actions {
         position: absolute;
@@ -350,33 +350,34 @@
         font-size: 0.9rem; /* Make '×' slightly larger for better visibility */
     }
 
+    /* WhatsApp-like Reply Preview (bottom bar) */
     .reply-preview {
-        background-color: #f0f0f0;
-        border-left: 4px solid #4CAF50; /* Green border for reply */
+        background-color: #e8f5e9; /* Light green, similar to WhatsApp incoming reply preview */
+        border-left: 4px solid #62b95c; /* Consistent WhatsApp green border */
         padding: 8px 12px;
         border-radius: 8px;
         margin-bottom: 8px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        overflow: hidden; /* Ensure content stays within */
     }
     .dark .reply-preview {
-        background-color: #333;
-        border-left-color: #4CAF50;
+        background-color: #3e4a52; /* Darker background for dark mode */
+        border-left-color: #62b95c;
     }
     .reply-preview .content {
         max-width: calc(100% - 30px); /* Space for cancel button */
         overflow: hidden;
-        white-space: nowrap;
+        white-space: nowrap; /* Keep snippet on one line for ellipsis */
         text-overflow: ellipsis;
         font-size: 0.9rem;
-        color: #555;
-        /* Flex properties to align thumbnail and text */
+        color: #333; /* Darker text for readability */
         display: flex;
         align-items: center;
     }
     .dark .reply-preview .content {
-        color: #bbb;
+        color: #ccc; /* Lighter text for dark mode */
     }
     .reply-preview .cancel-btn {
         background: none;
@@ -391,16 +392,23 @@
         color: #bbb;
     }
 
+    /* WhatsApp-like Replied Message Content (inside chat bubble) */
     .replied-message-content {
-        border-left: 3px solid #ccc; /* Light border for the quoted message */
-        padding-left: 8px;
-        margin-bottom: 4px;
-        font-size: 0.85em;
-        opacity: 0.8;
+        border-left: 4px solid #62b95c; /* A distinct WhatsApp green */
+        padding: 4px 8px; /* Slightly more padding */
+        margin-bottom: 4px; /* Space from the actual message */
+        font-size: 0.85em; /* Keep text smaller */
+        opacity: 0.9; /* Slightly less opaque than original message */
         cursor: pointer;
+        background-color: rgba(0, 0, 0, 0.03); /* Very subtle background for contrast */
+        border-radius: 6px; /* Rounded corners for the reply box */
+        overflow: hidden; /* Hide overflow for text-ellipsis */
+        white-space: nowrap; /* Prevent wrapping in snippet for better truncation */
+        text-overflow: ellipsis; /* Add ellipsis for long lines */
     }
     .dark .replied-message-content {
-        border-left-color: #666;
+        border-left-color: #62b95c;
+        background-color: rgba(255, 255, 255, 0.05); /* Subtle dark background */
     }
   </style>
 </head>
@@ -509,7 +517,7 @@
             </button>
             <textarea id="message" placeholder="Type a message" class="flex-grow p-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-500" rows="1" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
             
-            <button id="toggleVoiceInput" class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full flex items-center justify-center w-10 h-10">
+            <button id="toggleVoiceInput" class="text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-600 p-2 rounded-full flex items-center justify-center w-10 h-10">
                 <i class="fas fa-microphone"></i>
             </button>
             
@@ -636,7 +644,7 @@
         { type: 'image', content: 'https://media.tenor.com/BvlQdl0TAeIAAAAm/cute.webp' },
         { type: 'image', content: 'https://media.tenor.com/PXKZhCEfEfsAAAAm/bubu-bubu-dudu.webp' },
         { type: 'image', content: 'https://media.tenor.com/qZTZ0zYcB9YAAAAm/bubu-dudu-sseeyall.webp' },
-        { type: 'image', content: 'https://media.tenor.com/BKP6erkQWjMAAAAm/bubu-dudu-sseeyall.webp' },
+        { type: 'image', content: 'https://media.tenor.com/BKP6erkQWjMAAAAAm/bubu-dudu-sseeyall.webp' },
     ];
     let userCustomStickers = [];
     const MAX_RECENT_STICKERS = 6;
@@ -993,19 +1001,24 @@
             const bubble = document.createElement('div');
             div.id = msgId;
 
-            let messageContentHtml = '';
+            // Make the message bubble a flex container with column direction
+            bubble.className = 'message-bubble relative max-w-md px-3 py-2 rounded-lg shadow group flex flex-col';
+            
             if (replyTo && replyTo.contentSnippet) {
                 const sanitizedSnippet = replyTo.contentSnippet.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                 messageContentHtml += `
-                    <div class="replied-message-content" onclick="scrollToMessage('${replyTo.id}')">
-                        <p class="font-semibold text-sm">${sanitizedSnippet}</p>
-                    </div>
-                `;
+                const replyDiv = document.createElement('div');
+                replyDiv.className = 'replied-message-content';
+                replyDiv.onclick = () => scrollToMessage(replyTo.id);
+                replyDiv.innerHTML = `<p class="font-semibold text-sm">${sanitizedSnippet}</p>`;
+                bubble.appendChild(replyDiv);
             }
-            messageContentHtml += content;
 
+            // Wrap the main message content in a new div to ensure consistent alignment
+            const mainContentDiv = document.createElement('div');
+            mainContentDiv.className = 'message-text-content'; // Add a class for potential future styling if needed
+            mainContentDiv.innerHTML = content; // This assumes 'content' is already the desired HTML/text
+            bubble.appendChild(mainContentDiv);
 
-            bubble.className = 'message-bubble relative max-w-md px-3 py-2 rounded-lg shadow group'; /* Removed md:max-lg as it was conflicting with max-w-md */
 
             if (type === 'sent') {
                 div.className = 'flex justify-end mb-2';
@@ -1014,7 +1027,7 @@
                 div.className = 'flex justify-start mb-2';
                 bubble.classList.add('received-bubble');
             }
-            bubble.innerHTML = messageContentHtml;
+            
             div.appendChild(bubble);
 
             const actionsContainer = document.createElement('div');
@@ -1086,9 +1099,15 @@
                     // This is a trade-off with localStorage for media.
                     if (msg.type === 'view-once-text' && msg.content.includes('Click to reveal')) {
                         // Re-create the placeholder HTML for view-once texts
-                        const originalContent = JSON.parse(atob(msg.content.match(/'(.*?)'/)[1]));
-                        const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceText(this, '${btoa(JSON.stringify(originalContent))}')"><p class="font-bold">👁️ View-Once Message</p><p class="text-xs">Click to reveal</p></div>`;
-                        log(placeholderHTML, 'received', msg.id, msg.replyTo);
+                        // Ensure the original content is extracted correctly from the saved placeholder HTML
+                        const contentMatch = msg.content.match(/onclick="revealOnceText\(this,\s*'(.*?)'\)"/);
+                        if (contentMatch && contentMatch[1]) {
+                             const placeholderHTML = `<div class="cursor-pointer p-2 bg-gray-300 dark:bg-gray-600 rounded-lg" onclick="revealOnceText(this, '${contentMatch[1]}')"><p class="font-bold">👁️ View-Once Message</p><p class="text-xs">Click to reveal</p></div>`;
+                             log(placeholderHTML, 'received', msg.id, msg.replyTo);
+                        } else {
+                             // Fallback if parsing fails
+                             log(msg.content, msg.type, msg.id, msg.replyTo);
+                        }
                     } else if (msg.content.includes('View-Once Media') && msg.content.includes('blob-')) {
                         // For view-once media, we cannot re-render the media itself from local storage
                         // as Blob URLs are temporary. Display a placeholder.
@@ -1988,10 +2007,17 @@
         let snippetHTML;
         let snippetForPacket;
 
-        if (originalMessage.content.includes('<video')) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = originalMessage.content;
-            const videoSrc = tempDiv.querySelector('video')?.src;
+        // Create a temporary div to parse the saved message content HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = originalMessage.content;
+
+        const videoElement = tempDiv.querySelector('video');
+        const imgElement = tempDiv.querySelector('img');
+        const audioElement = tempDiv.querySelector('audio');
+        const mainTextContentElement = tempDiv.querySelector('.message-text-content'); // Get the actual text content div
+
+        if (videoElement) {
+            const videoSrc = videoElement.src;
             if (videoSrc) {
                 try {
                     const videoThumbnailUrl = await createVideoThumbnail(videoSrc);
@@ -2006,10 +2032,8 @@
                 snippetHTML = 'Media File';
                 snippetForPacket = '📎 Media';
             }
-        } else if (originalMessage.content.includes('<img')) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = originalMessage.content;
-            const imgSrc = tempDiv.querySelector('img')?.src;
+        } else if (imgElement) {
+            const imgSrc = imgElement.src;
             if (imgSrc) {
                 snippetHTML = `<img src="${imgSrc}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px; margin-right: 8px;"> <span>Image / Sticker</span>`;
                 snippetForPacket = '📷 Image';
@@ -2017,11 +2041,12 @@
                 snippetHTML = 'Media File';
                 snippetForPacket = '📎 Media';
             }
-        } else if (originalMessage.content.includes('<audio')) { // Handle audio messages for reply
+        } else if (audioElement) { // Handle audio messages for reply
             snippetHTML = `🎧 Voice Message`;
             snippetForPacket = '🎧 Voice Message';
         } else {
-            const textContent = originalMessage.content.replace(/<br>/g, ' ').replace(/<button.*?<\/button>/g, '').trim();
+            // For plain text messages, extract from the new .message-text-content div
+            const textContent = mainTextContentElement ? mainTextContentElement.textContent.replace(/\s+/g, ' ').trim() : originalMessage.content.replace(/<br>/g, ' ').replace(/<button.*?<\/button>/g, '').trim();
             snippetForPacket = textContent.substring(0, 50) + (textContent.length > 50 ? '...' : '');
             snippetHTML = snippetForPacket;
         }
